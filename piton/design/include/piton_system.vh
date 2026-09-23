@@ -143,7 +143,19 @@
     `undef PITON_FPGA_SD_BOOT
     `undef PITONSYS_SPI
     `define PITONSYS_AXI4_MEM
+    `define PITONSYS_SHELL
+`elsif KV260_BOARD
+    `undef PITON_FPGA_SD_BOOT
+    `undef PITONSYS_SPI
+    `define PITONSYS_AXI4_MEM
+    `define PITONSYS_SHELL
 `endif
+
+// PITONSYS_SHELL: the board wraps the system in a vendor shell that supplies
+// a single system clock and reaches DDR through an AXI4 slave port (AWS F1's
+// shell, the KV260's ZynqMP PS). The system then takes sys_clk and mc_clk and
+// exports the memory controller's AXI4 master (f1_mc_top) instead of driving
+// DDR pins or generating clocks.
 
 // If PITON_FPGA_SD_BOOT is set we should always include SPI
 `ifdef PITON_FPGA_SD_BOOT

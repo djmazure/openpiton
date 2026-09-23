@@ -60,6 +60,68 @@ output wire                            pll_lock,
 input reg [1:0]                       clk_mux_sel,
 input reg                             async_mux,
 input                                 ok_iob
+`ifdef PITONSYS_SHELL
+    // PITONSYS_SHELL (piton_system.vh): the board shell owns DDR, so the
+    // chipset's AXI4 memory master (f1_mc_top) leaves the system here, for
+    // the testbench to terminate as the shell would.
+    ,
+    // AXI Write Address Channel Signals
+    output wire [`AXI4_ID_WIDTH     -1:0]    m_axi_awid,
+    output wire [`AXI4_ADDR_WIDTH   -1:0]    m_axi_awaddr,
+    output wire [`AXI4_LEN_WIDTH    -1:0]    m_axi_awlen,
+    output wire [`AXI4_SIZE_WIDTH   -1:0]    m_axi_awsize,
+    output wire [`AXI4_BURST_WIDTH  -1:0]    m_axi_awburst,
+    output wire                                  m_axi_awlock,
+    output wire [`AXI4_CACHE_WIDTH  -1:0]    m_axi_awcache,
+    output wire [`AXI4_PROT_WIDTH   -1:0]    m_axi_awprot,
+    output wire [`AXI4_QOS_WIDTH    -1:0]    m_axi_awqos,
+    output wire [`AXI4_REGION_WIDTH -1:0]    m_axi_awregion,
+    output wire [`AXI4_USER_WIDTH   -1:0]    m_axi_awuser,
+    output wire                                  m_axi_awvalid,
+    input  wire                                  m_axi_awready,
+
+    // AXI Write Data Channel Signals
+    output wire  [`AXI4_ID_WIDTH     -1:0]    m_axi_wid,
+    output wire  [`AXI4_DATA_WIDTH   -1:0]    m_axi_wdata,
+    output wire  [`AXI4_STRB_WIDTH   -1:0]    m_axi_wstrb,
+    output wire                                   m_axi_wlast,
+    output wire  [`AXI4_USER_WIDTH   -1:0]    m_axi_wuser,
+    output wire                                   m_axi_wvalid,
+    input  wire                                   m_axi_wready,
+
+    // AXI Read Address Channel Signals
+    output wire  [`AXI4_ID_WIDTH     -1:0]    m_axi_arid,
+    output wire  [`AXI4_ADDR_WIDTH   -1:0]    m_axi_araddr,
+    output wire  [`AXI4_LEN_WIDTH    -1:0]    m_axi_arlen,
+    output wire  [`AXI4_SIZE_WIDTH   -1:0]    m_axi_arsize,
+    output wire  [`AXI4_BURST_WIDTH  -1:0]    m_axi_arburst,
+    output wire                                   m_axi_arlock,
+    output wire  [`AXI4_CACHE_WIDTH  -1:0]    m_axi_arcache,
+    output wire  [`AXI4_PROT_WIDTH   -1:0]    m_axi_arprot,
+    output wire  [`AXI4_QOS_WIDTH    -1:0]    m_axi_arqos,
+    output wire  [`AXI4_REGION_WIDTH -1:0]    m_axi_arregion,
+    output wire  [`AXI4_USER_WIDTH   -1:0]    m_axi_aruser,
+    output wire                                   m_axi_arvalid,
+    input  wire                                   m_axi_arready,
+
+    // AXI Read Data Channel Signals
+    input  wire  [`AXI4_ID_WIDTH     -1:0]    m_axi_rid,
+    input  wire  [`AXI4_DATA_WIDTH   -1:0]    m_axi_rdata,
+    input  wire  [`AXI4_RESP_WIDTH   -1:0]    m_axi_rresp,
+    input  wire                                   m_axi_rlast,
+    input  wire  [`AXI4_USER_WIDTH   -1:0]    m_axi_ruser,
+    input  wire                                   m_axi_rvalid,
+    output wire                                   m_axi_rready,
+
+    // AXI Write Response Channel Signals
+    input  wire  [`AXI4_ID_WIDTH     -1:0]    m_axi_bid,
+    input  wire  [`AXI4_RESP_WIDTH   -1:0]    m_axi_bresp,
+    input  wire  [`AXI4_USER_WIDTH   -1:0]    m_axi_buser,
+    input  wire                                   m_axi_bvalid,
+    output wire                                   m_axi_bready,
+
+    input  wire                                   ddr_ready
+`endif // PITONSYS_SHELL
 `endif
 );
 
@@ -296,6 +358,13 @@ system system(
 `endif // endif PITON_PASSTHRU_CLKS_GEN
 `endif // endif PITON_SYS_INC_PASSTHRU
 
+`ifdef PITONSYS_SHELL
+`ifdef VERILATOR
+    .sys_clk(core_ref_clk),
+`else
+    .sys_clk(chipset_clk),
+`endif
+`else // ifndef PITONSYS_SHELL
 `ifdef PITON_CHIPSET_CLKS_GEN
 `ifdef PITON_CHIPSET_DIFF_CLK
     .chipset_clk_osc_p(chipset_clk_osc_p),
@@ -322,6 +391,7 @@ system system(
     .chipset_passthru_clk_n(chipset_passthru_clk_n),
 `endif // endif PITONSYS_INC_PASSTHRU
 `endif // endif PITON_CHIPSET_CLKS_GEN
+`endif // endif PITONSYS_SHELL
 
     .sys_rst_n(sys_rst_n),
 
@@ -366,6 +436,69 @@ system system(
 `ifndef PITONSYS_NO_MC
 `ifdef PITON_FPGA_MC_DDR3
     // FPGA DDR MC interface, currently not supported in simulation
+`ifdef PITONSYS_SHELL
+`ifdef VERILATOR
+    .mc_clk(core_ref_clk),
+`else
+    .mc_clk(chipset_clk),
+`endif
+    // AXI Write Address Channel Signals
+    .m_axi_awid(m_axi_awid),
+    .m_axi_awaddr(m_axi_awaddr),
+    .m_axi_awlen(m_axi_awlen),
+    .m_axi_awsize(m_axi_awsize),
+    .m_axi_awburst(m_axi_awburst),
+    .m_axi_awlock(m_axi_awlock),
+    .m_axi_awcache(m_axi_awcache),
+    .m_axi_awprot(m_axi_awprot),
+    .m_axi_awqos(m_axi_awqos),
+    .m_axi_awregion(m_axi_awregion),
+    .m_axi_awuser(m_axi_awuser),
+    .m_axi_awvalid(m_axi_awvalid),
+    .m_axi_awready(m_axi_awready),
+
+    // AXI Write Data Channel Signals
+    .m_axi_wid(m_axi_wid),
+    .m_axi_wdata(m_axi_wdata),
+    .m_axi_wstrb(m_axi_wstrb),
+    .m_axi_wlast(m_axi_wlast),
+    .m_axi_wuser(m_axi_wuser),
+    .m_axi_wvalid(m_axi_wvalid),
+    .m_axi_wready(m_axi_wready),
+
+    // AXI Read Address Channel Signals
+    .m_axi_arid(m_axi_arid),
+    .m_axi_araddr(m_axi_araddr),
+    .m_axi_arlen(m_axi_arlen),
+    .m_axi_arsize(m_axi_arsize),
+    .m_axi_arburst(m_axi_arburst),
+    .m_axi_arlock(m_axi_arlock),
+    .m_axi_arcache(m_axi_arcache),
+    .m_axi_arprot(m_axi_arprot),
+    .m_axi_arqos(m_axi_arqos),
+    .m_axi_arregion(m_axi_arregion),
+    .m_axi_aruser(m_axi_aruser),
+    .m_axi_arvalid(m_axi_arvalid),
+    .m_axi_arready(m_axi_arready),
+
+    // AXI Read Data Channel Signals
+    .m_axi_rid(m_axi_rid),
+    .m_axi_rdata(m_axi_rdata),
+    .m_axi_rresp(m_axi_rresp),
+    .m_axi_rlast(m_axi_rlast),
+    .m_axi_ruser(m_axi_ruser),
+    .m_axi_rvalid(m_axi_rvalid),
+    .m_axi_rready(m_axi_rready),
+
+    // AXI Write Response Channel Signals
+    .m_axi_bid(m_axi_bid),
+    .m_axi_bresp(m_axi_bresp),
+    .m_axi_buser(m_axi_buser),
+    .m_axi_bvalid(m_axi_bvalid),
+    .m_axi_bready(m_axi_bready),
+
+    .ddr_ready(ddr_ready),
+`else // ifndef PITONSYS_SHELL
     .init_calib_complete(),
     .ddr_addr(),
     .ddr_ba(),
@@ -382,6 +515,7 @@ system system(
     .ddr_cs_n(),
     .ddr_dm(),
     .ddr_odt(),
+`endif // endif PITONSYS_SHELL
 `endif // endif PITON_FPGA_MC_DDR3
 `endif // endif PITONSYS_NO_MC
 
