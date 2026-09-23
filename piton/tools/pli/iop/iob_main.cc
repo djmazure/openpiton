@@ -73,6 +73,13 @@ struct static_for_pli{
   KeyType      last_addr[32];
 };
 static static_for_pli pli_var;
+// "No line cached" marker for pli_var.last_addr. Must not be a real line key:
+// mask_addr keys are 34 bits, so all-ones cannot occur. It used to be 0 - the
+// key of physical line 0 - so the first read of line 0 dereferenced the NULL
+// pli_var.data[0], and after a write-path invalidation a read of line 0 could
+// return another line's data. No core read line 0 until Microwatt, which
+// resets to address 0.
+#define PLI_NO_LINE ((KeyType)~0ULL)
 /*------------------------------------------
 initialize all variable to be used in this env.
 -------------------------------------------*/
@@ -98,7 +105,7 @@ void init_jbus_model_call(){
   sysMem              = b_create();//create
   if (!oram)
           read_mem(str, &sysMem);//read memory
-  for(idx = 0; idx < 32; idx++)pli_var.last_addr[idx] = oram ? -1 : 0;
+  for(idx = 0; idx < 32; idx++)pli_var.last_addr[idx] = PLI_NO_LINE;
 }
 /*------------------------------------------
 handle the cmp clock domain jobs.
@@ -259,7 +266,7 @@ void write_64b_call()
   if(pli_var.last_addr[0] == mask_addr){
     //io_printf("iob_main.cc: invaling cache\n");
     // invalidate cached data
-    pli_var.last_addr[0] = 0;
+    pli_var.last_addr[0] = PLI_NO_LINE;
   }
 
   data = b_Find(&sysMem, &mask_addr);
