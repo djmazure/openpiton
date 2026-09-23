@@ -1,0 +1,44 @@
+<!--
+Copyright (c) 2026 Daniel J. Mazure
+SPDX-License-Identifier: BSD-3-Clause (as the OpenPiton devices.xml it extends)
+
+Peripheral address map for OpenPiton + Microwatt on the AMD Kria KV260
+(KV260_BOARD -> PITONSYS_SHELL). There is no board DDR for the manycore:
+memory is a 512 MB carve-out of the ZynqMP PS DDR, reached through the
+chipset's AXI4 master and rr-openpiton's pmesh_hp_shim (PS = 0x4000_0000 +
+PA). mem.length MUST equal the shim's WINDOW and mc_define.h
+BOARD_MEM_SIZE_MB; anything beyond it is answered DECERR by the shim.
+
+The UART is the chipset 16550; on the board its TX/RX are cross-connected in
+fabric to PS UART0 over EMIO (null modem), so PS Linux reads the manycore
+console on /dev/ttyPS0.
+
+Not yet present: an interrupt controller (XICS) and syscon for SMP Linux -
+they are added with their RTL (rr-openpiton OPN-P2.15); a port listed here
+must have a chipset device behind it.
+-->
+<devices>
+    <!--The first entry should always be the filter/chip to xbar connection-->
+    <port>
+        <name>chip</name>
+        <noc2in/>
+    </port>
+    <port>
+        <name>mem</name>
+        <base>0x0</base>
+        <!-- 512 MB PS-DDR carve-out -->
+        <length>0x20000000</length>
+    </port>
+    <port>
+        <name>iob</name>
+        <base>0x9f00000000</base>
+        <length>0x10</length>
+        <noc2in/>
+    </port>
+    <port>
+        <name>uart</name>
+        <base>0xfff0c2c000</base>
+        <length>0xd4000</length>
+        <noc2in/>
+    </port>
+</devices>

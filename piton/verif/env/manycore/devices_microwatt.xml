@@ -1,0 +1,35 @@
+<!--
+Copyright (c) 2026 Daniel J. Mazure
+SPDX-License-Identifier: BSD-3-Clause (as the OpenPiton devices.xml it extends)
+
+Peripheral address map for OpenPiton + Microwatt simulation. Identical to
+devices.xml: the Microwatt tile reaches memory (PA < 0xC000_0000) and the
+0xFF_Fxxx_xxxx device window through its core address map (mw_piton_core:
+core 0xCxxx_xxxx -> PA 0xFF_Fxxx_xxxx, 0xCFxx_xxxx -> 0x98_00xx_xxxx).
+tools/bin/powerlib.py derives the Microwatt device tree from this file.
+-->
+<devices>
+    <!--The first entry should always be the filter/chip to xbar connection-->
+    <port>
+        <name>chip</name>
+        <noc2in/>
+    </port>
+    <port>
+        <name>mem</name>
+        <base>0x0</base>
+        <!-- 1 GB -->
+        <length>0x40000000</length>
+    </port>
+    <port>
+        <name>iob</name>
+        <base>0x9f00000000</base>
+        <length>0x10</length>
+        <noc2in/>
+    </port>
+    <port>
+        <name>uart</name>
+        <base>0xfff0c2c000</base>
+        <length>0xd4000</length>
+        <noc2in/>
+    </port>
+</devices>
