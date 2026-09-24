@@ -518,7 +518,11 @@ module chipset(
 // Generated clock for the core logic in the chipset
 `ifdef PITON_CHIPSET_CLKS_GEN
     wire                                        chipset_clk;
+`ifndef PITONSYS_SHELL
+    // Under PITONSYS_SHELL mc_clk is an input port (the shell supplies it);
+    // redeclaring it is an error (Verilator: "Duplicate declaration").
     wire                                        mc_clk;
+`endif // PITONSYS_SHELL
 `endif // endif PITON_CHIPSET_CLKS_GEN
 
 `ifdef PITON_BOARD
