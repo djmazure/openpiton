@@ -158,6 +158,10 @@ module chip(
 ,   input   [`PITON_NUM_TILES*2-1:0]            irq_i           // level sensitive IR lines, mip & sip (async)
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
+`ifdef PITON_MW_XICS
+    // Microwatt XICS (chipset mw_xics): one ICP level interrupt per tile (async)
+,   input   [`PITON_NUM_TILES-1:0]              mw_irq_i
+`endif // ifdef PITON_MW_XICS
 );
 
 <%
@@ -1061,6 +1065,9 @@ module chip(
         ,.irq_i               ( irq_i[_FLAT_ID_*2 +: 2]  )
     `endif // ifdef PITON_RV64_PLIC
     `endif // ifdef PITON_RV64_PLATFORM
+    `ifdef PITON_MW_XICS
+        ,.mw_irq_i            ( mw_irq_i[_FLAT_ID_]      )
+    `endif // ifdef PITON_MW_XICS
         ,
         // ucb from tiles to jtag
         .tile_jtag_ucb_val   ( tile0_jtag_ucb_val      ),

@@ -13,9 +13,11 @@ The UART is the chipset 16550; on the board its TX/RX are cross-connected in
 fabric to PS UART0 over EMIO (null modem), so PS Linux reads the manycore
 console on /dev/ttyPS0.
 
-Not yet present: an interrupt controller (XICS) and syscon for SMP Linux -
-they are added with their RTL (rr-openpiton OPN-P2.15); a port listed here
-must have a chipset device behind it.
+mw_xics is Microwatt's XICS (ICP at +0, ICS at +0x1000) as a chipset device
+(rr-openpiton hw/ip/mw_xics, OPN-P2.15). It must be paired with the
+PITON_MW_XICS define, which carries its interrupt wires to the tiles;
+chipset_impl refuses to elaborate if the two disagree. It is a pure slave, so
+no noc2in. A port listed here must have a chipset device behind it.
 -->
 <devices>
     <!--The first entry should always be the filter/chip to xbar connection-->
@@ -40,5 +42,11 @@ must have a chipset device behind it.
         <base>0xfff0c2c000</base>
         <length>0xd4000</length>
         <noc2in/>
+    </port>
+    <port>
+        <name>mw_xics</name>
+        <!-- core address 0xC0D0_0000 (mw_piton_core.v 0xC... window) -->
+        <base>0xfff0d00000</base>
+        <length>0x2000</length>
     </port>
 </devices>

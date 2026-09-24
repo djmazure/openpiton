@@ -29,6 +29,14 @@ CORE_WINDOWS = (
     (0x0, 0xC000_0000, 0x0),
 )
 
+# mw_xics (OPN-P2.15, rr-openpiton hw/ip/mw_xics): ICP at +0, 16 bytes per CPU
+# (XIRR_POLL, XIRR, -, MFRR: icp-native.c struct icp_ipl); ICS at +0x1000 with
+# its XIVEs at +0x800 + 4n (ics-native.c ics_native_xive), so the ICS reg must
+# span 0x1000, not upstream microwatt.dts's 0x100. Source 0x10 is the UART.
+XICS_WINDOW = 0x2000
+XICS_ICS_OFFSET = 0x1000
+XICS_UART_SOURCE = 0x10
+
 # devices*.xml entries that are chipset plumbing, not something Linux drives
 NOT_FOR_LINUX = ("chip", "iob")
 
@@ -57,7 +65,7 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
     uses as the dcbz / icbi / dcbst step: they must equal the core's real line
     sizes (a larger d-cache-block-size makes clear_page leave memory dirty)."""
     assert nCpus >= 1
-    known = ("mem", "uart") + NOT_FOR_LINUX
+    known = ("mem", "uart", "mw_xics") + NOT_FOR_LINUX
     unknown = [d["name"] for d in devices if d["name"] not in known]
     if unknown:
         raise ValueError("powerlib: no device-tree mapping for %s; add one to "
@@ -65,6 +73,15 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
 
     mems = [d for d in devices if d["name"] == "mem"]
     uarts = [d for d in devices if d["name"] == "uart"]
+    xics = [d for d in devices if d["name"] == "mw_xics"]
+    if len(xics) > 1:
+        raise ValueError("powerlib: at most one 'mw_xics' device, got %d" % len(xics))
+    if xics and xics[0]["length"] < XICS_WINDOW:
+        raise ValueError("powerlib: mw_xics window 0x%x is smaller than the 0x%x its "
+                         "ICS (+0x1000, XIVEs at +0x800) needs" % (xics[0]["length"], XICS_WINDOW))
+    if xics and nCpus > 1:
+        # TODO(OPN-P2.15): the chipset XICS is converted for one CPU (mw_xics.v)
+        raise ValueError("powerlib: mw_xics supports 1 CPU today, the config has %d" % nCpus)
     if len(mems) != 1:
         raise ValueError("powerlib: expected exactly one 'mem' device, got %d" % len(mems))
 
@@ -139,6 +156,11 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
         # Only the 8 byte-wide 16550 registers are declared (reg-shift 0, as
         # riscvlib: OpenPiton's UART16550 is modified to ns16550 spacing); the
         # xml's length is the chipset's decode window, which is larger.
+        # interrupts = <source flags>: flags LSB 1 = level (xics_host_xlate);
+        # the 16550 interrupt is a level. Without XICS the UART is polled.
+        irq = ("""
+        interrupt-parent = <&ICS>;
+        interrupts = <0x%x 0x1>;""" % XICS_UART_SOURCE) if xics else ""
         s += '''
     UART%d: serial@%x {
         device_type = "serial";
@@ -147,9 +169,33 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
         reg-shift = <0>;
         reg-io-width = <1>;
         clock-frequency = <%d>;
-        current-speed = <115200>;
+        current-speed = <115200>;%s
     };
-''' % (i, core, _cells2(core), _cells2(8), periphFreq)
+''' % (i, core, _cells2(core), _cells2(8), periphFreq, irq)
+
+    for x in xics:
+        core = pa_to_core("mw_xics", x["base"], x["length"])
+        ics = core + XICS_ICS_OFFSET
+        # one ICP reg entry per interrupt server (icp_native_init_one_node
+        # refuses a count mismatch)
+        icp_regs = " ".join("%s 0x0 0x10" % _cells2(core + 0x10 * k) for k in range(nCpus))
+        s += '''
+    interrupt-controller@%x {
+        compatible = "openpower,xics-presentation", "ibm,ppc-xicp";
+        ibm,interrupt-server-ranges = <0x0 0x%x>;
+        reg = <%s>;
+    };
+
+    ICS: interrupt-controller@%x {
+        compatible = "openpower,xics-sources";
+        interrupt-controller;
+        interrupt-ranges = <0x%x 0x10>;
+        reg = <%s %s>;
+        #address-cells = <0>;
+        #size-cells = <0>;
+        #interrupt-cells = <2>;
+    };
+''' % (core, nCpus, icp_regs, ics, XICS_UART_SOURCE, _cells2(ics), _cells2(XICS_ICS_OFFSET))
 
     s += '''};
 '''

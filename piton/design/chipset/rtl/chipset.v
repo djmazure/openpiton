@@ -504,6 +504,10 @@ module chipset(
 ,    output  [`PITON_NUM_TILES*2-1:0]                       irq_o           // level sensitive IR lines, mip & sip (async)
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
+`ifdef PITON_MW_XICS
+    // Microwatt XICS (mw_xics device): one ICP level interrupt per tile
+,    output  [`PITON_NUM_TILES-1:0]                         mw_irq_o
+`endif // ifdef PITON_MW_XICS
 
 );
 
@@ -1449,6 +1453,9 @@ chipset_impl_noc_power_test  chipset_impl (
         ,.irq_o                  ( irq_o         )
     `endif // ifdef PITON_RV64_PLIC
     `endif // ifdef PITON_RV64_PLATFORM
+    `ifdef PITON_MW_XICS
+        ,.mw_irq_o               ( mw_irq_o      )
+    `endif // ifdef PITON_MW_XICS
 );
 
 
