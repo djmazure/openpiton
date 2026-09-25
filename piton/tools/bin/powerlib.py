@@ -57,6 +57,54 @@ def _cells2(v):
     return "0x%08x 0x%08x" % (v >> 32, v & 0xFFFFFFFF)
 
 
+# The core's ISA features, for a CONFIG_PPC_DT_CPU_FTRS kernel. Without this
+# node the kernel falls back to matching the PVR, which has no Microwatt entry,
+# so CPU_FTR_ARCH_300 stays clear and mmu_pid_bits stays 0. PRTB_SIZE_SHIFT - 12
+# then wraps in the partition-table entry and the first fetch after the MMU is
+# enabled takes an ISI (rr-openpiton OPN-T2.1, observed on silicon). The feature
+# list is the kernel's own arch/powerpc/boot/dts/microwatt.dts (linux 6.6).
+CPU_FEATURES_NODE = '''
+        ibm,powerpc-cpu-features {
+            display-name = "Microwatt";
+            isa = <3000>;
+            device_type = "cpu-features";
+            compatible = "ibm,powerpc-cpu-features";
+
+            mmu-radix {
+                isa = <3000>;
+                usable-privilege = <2>;
+            };
+
+            little-endian {
+                isa = <2050>;
+                usable-privilege = <3>;
+                hwcap-bit-nr = <1>;
+            };
+
+            cache-inhibited-large-page {
+                isa = <2040>;
+                usable-privilege = <2>;
+            };
+
+            fixed-point-v3 {
+                isa = <3000>;
+                usable-privilege = <3>;
+            };
+
+            no-execute {
+                isa = <2010>;
+                usable-privilege = <2>;
+            };
+
+            floating-point {
+                hwcap-bit-nr = <27>;
+                isa = <0>;
+                usable-privilege = <3>;
+            };
+        };
+'''
+
+
 def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
                   timeStamp="", model="openpiton-microwatt"):
     """The DTS text. `cache` holds the Microwatt core's cache geometry:
@@ -123,7 +171,7 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
-'''
+''' + CPU_FEATURES_NODE
     for k in range(nCpus):
         s += '''
         PowerPC,Microwatt@%d {
