@@ -927,6 +927,9 @@ if (TILE_TYPE == `MICROWATT_TILE) begin : g_microwatt_core
     mw_piton_core core(
         .clk                                (clk_gated),
         .rst_n                              (rst_n_f),
+        // PIR = this tile's flat id, as Ariane's hart_id_i (OPN-P2.15);
+        // chipset mw_xics interrupt server k drives mw_irq_i of tile k
+        .cpu_index                          (flat_tileid),
 `ifdef PITON_MW_XICS
         .ext_irq_async                      (mw_irq_i),
 `else

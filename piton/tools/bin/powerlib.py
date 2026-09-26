@@ -36,6 +36,7 @@ CORE_WINDOWS = (
 XICS_WINDOW = 0x2000
 XICS_ICS_OFFSET = 0x1000
 XICS_UART_SOURCE = 0x10
+XICS_CONVERTED_NCPUS = (1, 2)   # rr-openpiton hw/ip/mw_xics/rtl/mw_xics.v (OPN-P2.15)
 
 # devices*.xml entries that are chipset plumbing, not something Linux drives
 NOT_FOR_LINUX = ("chip", "iob")
@@ -127,9 +128,11 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
     if xics and xics[0]["length"] < XICS_WINDOW:
         raise ValueError("powerlib: mw_xics window 0x%x is smaller than the 0x%x its "
                          "ICS (+0x1000, XIVEs at +0x800) needs" % (xics[0]["length"], XICS_WINDOW))
-    if xics and nCpus > 1:
-        # TODO(OPN-P2.15): the chipset XICS is converted for one CPU (mw_xics.v)
-        raise ValueError("powerlib: mw_xics supports 1 CPU today, the config has %d" % nCpus)
+    if xics and nCpus not in XICS_CONVERTED_NCPUS:
+        # rr-openpiton mw_xics.v instantiates one converted netlist per CPU
+        # count (hooks convert_mw_xics / convert_mw_xics2) and refuses others
+        raise ValueError("powerlib: mw_xics is converted for %s CPUs, the config has %d"
+                         % (" or ".join(str(n) for n in XICS_CONVERTED_NCPUS), nCpus))
     if len(mems) != 1:
         raise ValueError("powerlib: expected exactly one 'mem' device, got %d" % len(mems))
 
