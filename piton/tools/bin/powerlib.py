@@ -97,17 +97,24 @@ CPU_FEATURES_NODE = '''
                 usable-privilege = <2>;
             };
 
+%(fp)s        };
+'''
+
+# Only for a core built with its FPU (mw_core_flat HAS_FPU=true). The node makes
+# dt_cpu_ftrs.c feat_enable_fp() clear CPU_FTR_FPU_UNAVAILABLE; on an FPU-less
+# core every FP instruction traps (HEAI) and the kernel must emulate it
+# (MATH_EMULATION), so the feature must not be advertised (rr-openpiton OPN-P2.23).
+FLOATING_POINT_NODE = '''
             floating-point {
                 hwcap-bit-nr = <27>;
                 isa = <0>;
                 usable-privilege = <3>;
             };
-        };
 '''
 
 
 def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
-                  timeStamp="", model="openpiton-microwatt"):
+                  timeStamp="", model="openpiton-microwatt", has_fpu=True):
     """The DTS text. `cache` holds the Microwatt core's cache geometry:
     icache_line, icache_lines, icache_ways, dcache_line, dcache_lines,
     dcache_ways. The *line* sizes become i-/d-cache-block-size, which Linux
@@ -174,7 +181,7 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
     cpus {
         #address-cells = <1>;
         #size-cells = <0>;
-''' + CPU_FEATURES_NODE
+''' + CPU_FEATURES_NODE % {"fp": FLOATING_POINT_NODE if has_fpu else ""}
     for k in range(nCpus):
         s += '''
         PowerPC,Microwatt@%d {
@@ -260,11 +267,13 @@ def main(argv=None):
     out, kv = argv[0], dict(a.split("=", 1) for a in argv[1:])
     cache = {k: int(kv[k]) for k in ("icache_line", "icache_lines", "icache_ways",
                                       "dcache_line", "dcache_lines", "dcache_ways")}
+    has_fpu = kv.get("has_fpu", "1") not in ("0", "false", "False")
     sysFreq = int(os.environ.get("CONFIG_SYS_FREQ", "50000000"))
     dts = gen_power_dts(pyhplib.ReadDevicesXMLFile(), pyhplib.PITON_NUM_TILES,
                         sysFreq, sysFreq, sysFreq, cache,
                         timeStamp=os.environ.get("POWERLIB_TIMESTAMP",
-                                                 time.strftime("%b %d %Y %H:%M:%S")))
+                                                 time.strftime("%b %d %Y %H:%M:%S")),
+                        has_fpu=has_fpu)
     with open(out, "w") as f:
         f.write(dts)
 
