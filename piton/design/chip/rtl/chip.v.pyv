@@ -162,6 +162,10 @@ module chip(
     // Microwatt XICS (chipset mw_xics): one ICP level interrupt per tile (async)
 ,   input   [`PITON_NUM_TILES-1:0]              mw_irq_i
 `endif // ifdef PITON_MW_XICS
+`ifdef PITON_MW_SYSCON
+    // Microwatt syscon (chipset mw_syscon): CPU_CTRL run bit per tile (async)
+,   input   [`PITON_NUM_TILES-1:0]              mw_run_i
+`endif // ifdef PITON_MW_SYSCON
 );
 
 <%
@@ -1068,6 +1072,9 @@ module chip(
     `ifdef PITON_MW_XICS
         ,.mw_irq_i            ( mw_irq_i[_FLAT_ID_]      )
     `endif // ifdef PITON_MW_XICS
+    `ifdef PITON_MW_SYSCON
+        ,.mw_run_i            ( mw_run_i[_FLAT_ID_]      )
+    `endif // ifdef PITON_MW_SYSCON
         ,
         // ucb from tiles to jtag
         .tile_jtag_ucb_val   ( tile0_jtag_ucb_val      ),

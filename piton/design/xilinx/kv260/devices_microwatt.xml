@@ -18,6 +18,10 @@ mw_xics is Microwatt's XICS (ICP at +0, ICS at +0x1000) as a chipset device
 PITON_MW_XICS define, which carries its interrupt wires to the tiles;
 chipset_impl refuses to elaborate if the two disagree. It is a pure slave, so
 no noc2in. A port listed here must have a chipset device behind it.
+
+mw_syscon is Microwatt's syscon (rr-openpiton hw/ip/mw_syscon, OPN-P2.24) at
+core 0xC000_0000, where Linux's Microwatt SMP code looks for CPU_CTRL. It must
+be paired with PITON_MW_SYSCON, which carries its run wires to the tiles.
 -->
 <devices>
     <!--The first entry should always be the filter/chip to xbar connection-->
@@ -42,6 +46,12 @@ no noc2in. A port listed here must have a chipset device behind it.
         <base>0xfff0c2c000</base>
         <length>0xd4000</length>
         <noc2in/>
+    </port>
+    <port>
+        <name>mw_syscon</name>
+        <!-- core address 0xC000_0000: Linux microwatt smp.c SYSCON_BASE / SYSCON_LENGTH -->
+        <base>0xfff0000000</base>
+        <length>0x100</length>
     </port>
     <port>
         <name>mw_xics</name>

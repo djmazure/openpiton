@@ -121,7 +121,9 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
     uses as the dcbz / icbi / dcbst step: they must equal the core's real line
     sizes (a larger d-cache-block-size makes clear_page leave memory dirty)."""
     assert nCpus >= 1
-    known = ("mem", "uart", "mw_xics") + NOT_FOR_LINUX
+    # mw_syscon (OPN-P2.24) needs no DT node: Linux's Microwatt smp.c maps
+    # SYSCON at a hard-coded 0xC000_0000 ("XXX get from device tree").
+    known = ("mem", "uart", "mw_xics", "mw_syscon") + NOT_FOR_LINUX
     unknown = [d["name"] for d in devices if d["name"] not in known]
     if unknown:
         raise ValueError("powerlib: no device-tree mapping for %s; add one to "

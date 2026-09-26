@@ -193,6 +193,9 @@ print(s)
 `ifdef PITON_MW_XICS
 ,   input                               mw_irq_i       // Microwatt XICS ICP level interrupt (async)
 `endif // ifdef PITON_MW_XICS
+`ifdef PITON_MW_SYSCON
+,   input                               mw_run_i       // Microwatt syscon CPU_CTRL run bit (async)
+`endif // ifdef PITON_MW_SYSCON
 );
     // clock gating
     wire clk_gated;
@@ -934,6 +937,14 @@ if (TILE_TYPE == `MICROWATT_TILE) begin : g_microwatt_core
         .ext_irq_async                      (mw_irq_i),
 `else
         .ext_irq_async                      (1'b0),
+`endif
+        // chipset mw_syscon CPU_CTRL bit k starts tile k (Linux microwatt
+        // smp.c, OPN-P2.24); mw_piton_core ignores it on tile 0, which the
+        // IOB wake-up packet starts
+`ifdef PITON_MW_SYSCON
+        .run_async                          (mw_run_i),
+`else
+        .run_async                          (1'b0),
 `endif
 
         .transducer_l15_val                 (transducer_l15_val),
