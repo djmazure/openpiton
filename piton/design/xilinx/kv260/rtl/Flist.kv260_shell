@@ -1,0 +1,18 @@
+// KV260 PITONSYS_SHELL memory path: f1_mc_top and noc_axi4_bridge (upstream
+// builds them only for AWS F1) plus pmesh_hp_shim, which carries the bridge
+// AXI4 to a ZynqMP PS high-performance port, so memory is the PS DDR.
++incdir+../../../chipset/noc_axi4_bridge/rtl
+../../../chipset/common/rtl/noc_bidir_afifo.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_buffer.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_ser.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_deser.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_read.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_write.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_sram_data.v
+../../../chipset/noc_axi4_bridge/rtl/noc_axi4_bridge_sram_req.v
+../../../chipset/mc/rtl/f1_mc_top.v
+pmesh_hp_shim.v
+// SIMULATION ONLY: behavioural model of the Xilinx FIFO Generator core that
+// noc_bidir_afifo instantiates (upstream ships only its .xci).
+../sim/afifo_w64_d128_std.v

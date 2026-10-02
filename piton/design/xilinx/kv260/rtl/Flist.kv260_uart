@@ -1,0 +1,18 @@
+// KV260 UART: PITON_FULL_SYSTEM io_ctrl UART chain plus the open 16550
+// (OpenCores register file and FIFOs as shipped with Microwatt) that fills
+// uart_top uart_16550 slot in place of the Xilinx IP.
+../../../chipset/io_ctrl/rtl/net_int_sync.v
+../../../chipset/io_ctrl/rtl/uart_top.v
+../../../chipset/io_ctrl/rtl/uart_writer.v
+../../../chipset/io_ctrl/rtl/uart_reader.v
+../../../chipset/io_ctrl/rtl/uart_mux.v
+../../../chipset/io_ctrl/rtl/uart_reseter.v
++incdir+../../../chip/tile/microwatt/uart16550
+../../../chip/tile/microwatt/uart16550/uart_sync_flops.v
+../../../chip/tile/microwatt/uart16550/raminfr.v
+../../../chip/tile/microwatt/uart16550/uart_tfifo.v
+../../../chip/tile/microwatt/uart16550/uart_rfifo.v
+../../../chip/tile/microwatt/uart16550/uart_transmitter.v
+../../../chip/tile/microwatt/uart16550/uart_receiver.v
+../../../chip/tile/microwatt/uart16550/uart_regs.v
+uart_16550.v
