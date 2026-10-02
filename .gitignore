@@ -112,3 +112,7 @@ ucli.key
 cscope.*
 tags
 *.bak
+
+# Microwatt netlists written by piton/tools/bin/convert_microwatt
+piton/design/chip/tile/microwatt_tile/gen/
+piton/design/chipset/microwatt/gen/
