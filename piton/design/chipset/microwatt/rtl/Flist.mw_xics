@@ -1,0 +1,9 @@
+// Microwatt XICS chipset device: the device, its NoC->Wishbone adapter
+// (mw_noc_wb, shared with mw_syscon), and Microwatt ICP/ICS netlists generated
+// by piton/tools/bin/convert_microwatt (xics, xics2). Every configuration whose
+// devices*.xml lists mw_xics needs this flist AND --define PITON_MW_XICS;
+// chipset_impl refuses to elaborate otherwise.
+mw_noc_wb.v
+mw_xics.v
+../gen/mw_xics_flat.v
+../gen/mw_xics_flat_n2.v

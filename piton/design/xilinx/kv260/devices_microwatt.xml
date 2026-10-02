@@ -5,7 +5,7 @@ SPDX-License-Identifier: BSD-3-Clause (as the OpenPiton devices.xml it extends)
 Peripheral address map for OpenPiton + Microwatt on the AMD Kria KV260
 (KV260_BOARD -> PITONSYS_SHELL). There is no board DDR for the manycore:
 memory is a 512 MB carve-out of the ZynqMP PS DDR, reached through the
-chipset's AXI4 master and rr-openpiton's pmesh_hp_shim (PS = 0x4000_0000 +
+chipset AXI4 master and pmesh_hp_shim (rtl/pmesh_hp_shim.v) (PS = 0x4000_0000 +
 PA). mem.length MUST equal the shim's WINDOW and mc_define.h
 BOARD_MEM_SIZE_MB; anything beyond it is answered DECERR by the shim.
 
@@ -14,12 +14,12 @@ fabric to PS UART0 over EMIO (null modem), so PS Linux reads the manycore
 console on /dev/ttyPS0.
 
 mw_xics is Microwatt's XICS (ICP at +0, ICS at +0x1000) as a chipset device
-(rr-openpiton hw/ip/mw_xics, OPN-P2.15). It must be paired with the
+(design/chipset/microwatt/rtl/mw_xics.v). It must be paired with the
 PITON_MW_XICS define, which carries its interrupt wires to the tiles;
 chipset_impl refuses to elaborate if the two disagree. It is a pure slave, so
 no noc2in. A port listed here must have a chipset device behind it.
 
-mw_syscon is Microwatt's syscon (rr-openpiton hw/ip/mw_syscon, OPN-P2.24) at
+mw_syscon is Microwatt's syscon (design/chipset/microwatt/rtl/mw_syscon.v) at
 core 0xC000_0000, where Linux's Microwatt SMP code looks for CPU_CTRL. It must
 be paired with PITON_MW_SYSCON, which carries its run wires to the tiles.
 -->

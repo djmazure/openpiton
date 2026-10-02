@@ -8,7 +8,7 @@
 # disagree by construction.
 #
 # The one translation between them is the Microwatt tile's core address map
-# (rr-openpiton hw/tile/mw_piton_core.v). A Microwatt core issues 32-bit real
+# (design/chip/tile/microwatt_tile/rtl/mw_piton_core.v). A Microwatt core issues 32-bit real
 # addresses; the tile widens them to 40-bit P-Mesh physical addresses:
 #
 #     core 0xCFxx_xxxx               ->  PA 0x98_00xx_xxxx   (L1.5 CSRs: IPI)
@@ -29,14 +29,14 @@ CORE_WINDOWS = (
     (0x0, 0xC000_0000, 0x0),
 )
 
-# mw_xics (OPN-P2.15, rr-openpiton hw/ip/mw_xics): ICP at +0, 16 bytes per CPU
+# mw_xics (OPN-P2.15, design/chipset/microwatt/rtl/mw_xics.v): ICP at +0, 16 bytes per CPU
 # (XIRR_POLL, XIRR, -, MFRR: icp-native.c struct icp_ipl); ICS at +0x1000 with
 # its XIVEs at +0x800 + 4n (ics-native.c ics_native_xive), so the ICS reg must
 # span 0x1000, not upstream microwatt.dts's 0x100. Source 0x10 is the UART.
 XICS_WINDOW = 0x2000
 XICS_ICS_OFFSET = 0x1000
 XICS_UART_SOURCE = 0x10
-XICS_CONVERTED_NCPUS = (1, 2)   # rr-openpiton hw/ip/mw_xics/rtl/mw_xics.v (OPN-P2.15)
+XICS_CONVERTED_NCPUS = (1, 2)   # design/chipset/microwatt/rtl/mw_xics.v (OPN-P2.15)
 
 # devices*.xml entries that are chipset plumbing, not something Linux drives
 NOT_FOR_LINUX = ("chip", "iob")
@@ -138,7 +138,7 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
         raise ValueError("powerlib: mw_xics window 0x%x is smaller than the 0x%x its "
                          "ICS (+0x1000, XIVEs at +0x800) needs" % (xics[0]["length"], XICS_WINDOW))
     if xics and nCpus not in XICS_CONVERTED_NCPUS:
-        # rr-openpiton mw_xics.v instantiates one converted netlist per CPU
+        # mw_xics.v instantiates one converted netlist per CPU
         # count (hooks convert_mw_xics / convert_mw_xics2) and refuses others
         raise ValueError("powerlib: mw_xics is converted for %s CPUs, the config has %d"
                          % (" or ".join(str(n) for n in XICS_CONVERTED_NCPUS), nCpus))
