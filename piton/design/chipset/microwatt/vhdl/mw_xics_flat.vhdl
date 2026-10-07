@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+-- SPDX-License-Identifier: MIT
+--
 -- mw_xics_flat — Microwatt XICS (ICP + ICS) with flat, record-free ports (OPN-P2.15)
 --
 -- The GHDL->Verilog conversion (hw/scripts/convert_microwatt.sh, top

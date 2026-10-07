@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+// SPDX-License-Identifier: MIT
+//
 // pmesh_hp_shim - OpenPiton chipset memory master -> Zynq UltraScale+ PS HP port
 // (OPN-P2.11). Contract: ../requirements.yml.
 //

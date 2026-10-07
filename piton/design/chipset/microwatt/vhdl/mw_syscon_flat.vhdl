@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+-- SPDX-License-Identifier: MIT
+--
 -- mw_syscon_flat — Microwatt syscon with flat, record-free ports (OPN-P2.24)
 --
 -- The GHDL->Verilog conversion (hw/scripts/convert_microwatt.sh, top

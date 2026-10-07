@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+# SPDX-License-Identifier: MIT
+#
 # convert_microwatt — Microwatt's VHDL -> the Verilog netlists a Microwatt
 # OpenPiton system needs, for simulators that cannot read VHDL.
 #

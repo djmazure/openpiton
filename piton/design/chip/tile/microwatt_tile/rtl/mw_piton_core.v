@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+// SPDX-License-Identifier: MIT
+//
 // mw_piton_core — the Microwatt core as an OpenPiton tile core (OPN-P2.4)
 //
 // What OpenPiton's tile.v instantiates for TILE_TYPE == MICROWATT_TILE. Its

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+// SPDX-License-Identifier: MIT
+//
 // tri_wb_bridge — Microwatt (pipelined Wishbone B4) <-> OpenPiton TRI (L1.5)
 //
 // Connects an unmodified-datapath Microwatt core to OpenPiton/BYOC's

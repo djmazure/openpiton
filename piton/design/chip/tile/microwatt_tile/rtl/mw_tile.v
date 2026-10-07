@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+// SPDX-License-Identifier: MIT
+//
 // mw_tile — converted Microwatt core + tri_wb_bridge, TRI ports at the top (OPN-P2.3)
 //
 // The TRI ports keep tri_wb_bridge's exact names, so the same L1.5 model and
