@@ -1,9 +1,9 @@
 -- SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 -- SPDX-License-Identifier: MIT
 --
--- mw_core_flat — Microwatt core with flat, record-free ports (OPN-P2.3)
+-- mw_core_flat — Microwatt core with flat, record-free ports
 --
--- The GHDL->Verilog conversion (hw/scripts/convert_microwatt.sh) elaborates
+-- The GHDL->Verilog conversion (piton/tools/bin/convert_microwatt) elaborates
 -- THIS entity as its top, so the generated Verilog module has plain port names
 -- that match tri_wb_bridge one-to-one instead of escaped record fields.
 --
@@ -15,10 +15,10 @@
 --   * DCBZ_ALLOCATE = false: the dcache allocates a line ONLY through a cacheable
 --     read fill - the one allocation tri_wb_bridge's shadow tags and the L1.5
 --     way-map can see. A dcbz-allocated line would never be invalidated
---     (found by test_mw_tile: head.S zeroes .bss with dcbz).
+--     (a start-up that zeroes .bss with dcbz hits this).
 --
 -- wbd_nc is the dcache's own storage attribute for each data beat (core
--- wb_data_nc = dcache ext_nc, OPN-P3.3): real-mode I/O space (0xC...),
+-- wb_data_nc = dcache ext_nc): real-mode I/O space (0xC...),
 -- cache-inhibited instructions (ldcix/stbcix...) at ANY address, and no-cache
 -- pages in virtual mode. It is 0 for an EXT_ATOMICS lwarx to memory, which is
 -- non-allocating but not cache-inhibited.
@@ -33,19 +33,19 @@ use work.utils.all;
 entity mw_core_flat is
     generic (
         DCACHE_NUM_LINES : natural := 64;
-        -- false drops the FPU (OPN-P2.9 fit trim; FP ops then need the
+        -- false drops the FPU (to fit a smaller FPGA; FP ops then need the
         -- kernel's MATH_EMULATION, which relies on them trapping)
         HAS_FPU          : boolean := true
         );
     port (
         clk          : in  std_ulogic;
         rst          : in  std_ulogic;
-        -- Timebase reset (OPN-P2.15). The SYSTEM reset, not rst: rst also
+        -- Timebase reset. The SYSTEM reset, not rst: rst also
         -- holds a sleeping tile (core_hold), and a timebase that restarts at
         -- each tile's wake differs across cores. Every tile's timebase then
         -- counts the same clock from the same reset release.
         tb_rst       : in  std_ulogic;
-        -- PIR of this core (OPN-P2.15): one netlist serves every tile, so the
+        -- PIR of this core: one netlist serves every tile, so the
         -- CPU index is a port, driven with the tile's flat id.
         cpu_index    : in  std_ulogic_vector(7 downto 0);
 
@@ -78,14 +78,14 @@ entity mw_core_flat is
         snp_we       : in  std_ulogic;
         snp_adr      : in  std_ulogic_vector(28 downto 0);
 
-        -- I-cache index invalidation (OPN-P2.13, TWB-COH-003): invalidate
+        -- I-cache index invalidation: invalidate
         -- every way of the icache index that byte address icinv_adr names.
         -- The L1.5 names only address bits [15:4] (inval_address_15_4), so
         -- the icache index must lie inside them (asserted below).
         icinv_stb    : in  std_ulogic;
         icinv_adr    : in  std_ulogic_vector(15 downto 4);
 
-        -- external interrupt (level, this core's XICS ICP output; OPN-P2.15).
+        -- external interrupt (level, this core's XICS ICP output).
         -- Already synchronised to clk by the caller.
         ext_irq      : in  std_ulogic;
 

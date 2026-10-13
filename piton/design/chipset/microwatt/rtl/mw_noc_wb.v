@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 //
 // mw_noc_wb — a P-Mesh chipset device port to Microwatt's Wishbone I/O bus,
-// shared by the Microwatt-derived chipset devices (mw_xics OPN-P2.15,
-// mw_syscon OPN-P2.24). Moved here unchanged from mw_xics.v; ADDR_W is the
+// shared by the Microwatt-derived chipset devices (mw_xics, mw_syscon).
+// Moved here unchanged from mw_xics.v; ADDR_W is the
 // byte-offset width of the device window (13 = 8 KB for mw_xics, 8 = 256 B
 // for mw_syscon).
 //
@@ -13,7 +13,7 @@
 //        a time: cyc is held for the access, stb is a one-cycle pulse, the
 //        slave's ack ends it.
 //
-// Byte lanes (XICS-MAP-002). The bridge does not place write data by address:
+// Byte lanes. The bridge does not place write data by address:
 // wstrb is a size mask from lane 0 (1/3/F/FF) and the offset is in awaddr
 // [BRG :375-395]. Store data arrives REPLICATED across the doubleword
 // (tri_wb_bridge.v:295, pico_decoder.v:134) and SWAP_ENDIANESS turns the

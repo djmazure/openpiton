@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 // SPDX-License-Identifier: MIT
 //
-// mw_syscon — Microwatt syscon as an OpenPiton chipset device (OPN-P2.24).
-// Contract: hw/ip/mw_syscon/requirements.yml.
+// mw_syscon — Microwatt syscon as an OpenPiton chipset device.
 //
 //   NoC2 in / NoC3 out (device port "mw_syscon", 256-byte window at
 //   PA 0xFF_F000_0000 = core 0xC000_0000, where Linux's microwatt smp.c
 //   looks for it)
-//     -> mw_noc_wb (hw/ip/mw_noc_wb: noc_axilite_bridge, AXI-lite -> one-beat
+//     -> mw_noc_wb (mw_noc_wb.v: noc_axilite_bridge, AXI-lite -> one-beat
 //        Wishbone I/O, 32-bit, little-endian registers as readl/writel expect)
 //     -> mw_syscon_flat: Microwatt's own syscon.vhdl, NCPUS = the tile count
 //
@@ -15,8 +14,8 @@
 // as a sideband wire (PITON_MW_SYSCON), where it starts the core the way
 // Microwatt's core reset release does: "they start at location 0" (smp.c).
 // run[0] is produced but the system does not route it: tile 0 is started by
-// OpenPiton's IOB wake-up packet (SYSCON-DIV-001). A run bit that is cleared
-// again does not stop a started tile (SYSCON-DIV-002, a property of the
+// OpenPiton's IOB wake-up packet. A run bit that is cleared
+// again does not stop a started tile (a property of the
 // tile's wake latch, not of this device).
 `include "define.tmp.h"
 
@@ -53,9 +52,9 @@ module mw_syscon #(
     );
 
     // GHDL fixes generics at conversion, so each supported NCPUS is its own
-    // converted netlist: mw_syscon_flat (1 CPU, hook convert_mw_syscon) and
-    // mw_syscon_flat_n2 (2 CPUs, convert_mw_syscon2), both in Flist.syscon.
-    // Any other count is refused (SYSCON-CFG-001) rather than reporting the
+    // converted netlist: mw_syscon_flat (1 CPU, convert_microwatt syscon) and
+    // mw_syscon_flat_n2 (2 CPUs, convert_microwatt syscon2), both in Flist.mw_syscon.
+    // Any other count is refused rather than reporting the
     // wrong NCPUS to Linux.
     generate if (NCPUS == 1) begin : g_n1
         mw_syscon_flat syscon (

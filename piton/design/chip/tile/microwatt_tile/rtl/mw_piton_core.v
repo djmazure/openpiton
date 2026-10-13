@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 // SPDX-License-Identifier: MIT
 //
-// mw_piton_core — the Microwatt core as an OpenPiton tile core (OPN-P2.4)
+// mw_piton_core — the Microwatt core as an OpenPiton tile core
 //
 // What OpenPiton's tile.v instantiates for TILE_TYPE == MICROWATT_TILE. Its
 // ports are exactly the tile's TRI wires, so the tile block is a plain
@@ -14,14 +14,14 @@
 //    PicoRV32 waits on pico_int, Balkind's 2020 Microwatt tile on
 //    rst_pkt_rcv. The core is held in reset until that packet has been seen,
 //    so it never fetches before the system is ready. The bridge stays out of
-//    reset meanwhile: it must consume the wakeup message (TWB-HS-002).
+//    reset meanwhile: it must consume the wakeup message.
 //
 // 2. MAP MICROWATT'S 32-BIT BUS ONTO THE 40-BIT PHYSICAL SPACE. Microwatt's
 //    I/O region is 0xC000_0000-0xCFFF_FFFF (256 MiB; loadstore1's real-mode
 //    cache-inhibit rule and microwatt_soc.h), OpenPiton's device space is 0xFF_F000_0000-
 //    0xFF_FFFF_FFFF (devices.xml: UART 0xFF_F0C2_C000, and the RV64
 //    platform's CLINT/PLIC/bootrom at 0xFF_F1xx_xxxx) - also 256 MiB. So
-//      core 0xCFxx_xxxx  ->  PA 0x98_00xx_xxxx   (OPN-P2.5, see below)
+//      core 0xCFxx_xxxx  ->  PA 0x98_00xx_xxxx   (see below)
 //      core 0xCxxx_xxxx  ->  PA 0xFF_Fxxx_xxxx   (every other 0xC)
 //      core anything else ->  PA zero-extended (DRAM from 0)
 //    and the OpenPiton UART is at core address 0xC0C2_C000.
@@ -34,7 +34,7 @@
 //    wake tile 0, so it is also how one Microwatt tile wakes another. Nothing
 //    in devices.xml lives at 0xFF_FFxx_xxxx, so the carve-out hides no device.
 //    This is only the address map. Whether an access is non-cacheable comes
-//    from the core itself (dcache ext_nc -> wbd_nc, OPN-P3.3), which also
+//    from the core itself (dcache ext_nc -> wbd_nc), which also
 //    covers ci-instructions and no-cache pages outside this window.
 
 `default_nettype none
@@ -42,17 +42,17 @@
 module mw_piton_core (
     input  wire        clk,
     input  wire        rst_n,
-    // XICS level interrupt for this tile from the chipset (OPN-P2.15); tied 0
+    // XICS level interrupt for this tile from the chipset; tied 0
     // by the tile when the system has no XICS. Asynchronous to clk in general
     // (chipset clock), so it is synchronised here before the core samples it.
     input  wire        ext_irq_async,
-    // Microwatt syscon CPU_CTRL enable bit for this tile (chipset mw_syscon,
-    // OPN-P2.24), asynchronous. It starts a secondary tile the way a native
+    // Microwatt syscon CPU_CTRL enable bit for this tile (chipset mw_syscon),
+    // asynchronous. It starts a secondary tile the way a native
     // Microwatt SoC releases a core's reset: at address 0. Ignored on tile 0
-    // (cpu_index 0), which the IOB wake-up packet starts (SYSCON-DIV-001).
+    // (cpu_index 0), which the IOB wake-up packet starts.
     input  wire        run_async,
     // This tile's flat id (tile.v flat_tileid): the core's PIR, and the XICS
-    // interrupt server whose output drives ext_irq_async (OPN-P2.15).
+    // interrupt server whose output drives ext_irq_async.
     input  wire [7:0]  cpu_index,
 
     output wire        transducer_l15_val,
@@ -103,13 +103,13 @@ module mw_piton_core (
     (* ASYNC_REG = "TRUE" *) reg [1:0] run_sync;
     always @(posedge clk) run_sync <= {run_sync[0], run_async};
 `ifdef MW_MUTANT_NO_RUN
-    wire run = 1'b0;     // mutant: the syscon run wire is cut (SYSCON-SYS-001)
+    wire run = 1'b0;     // mutant: the syscon run wire is cut
 `else
     wire run = run_sync[1] && cpu_index != 8'd0;
 `endif
 
     // Sticky: a started tile keeps running if its run bit is cleared again
-    // (SYSCON-DIV-002; Linux writes CPU_CTRL once).
+    // (Linux writes CPU_CTRL once).
     reg woken;
     always @(posedge clk) begin
         if (!rst_n)
@@ -125,7 +125,7 @@ module mw_piton_core (
 
     wire        snp_cyc, snp_stb, snp_we, wbd_stall, terminated;
     wire [28:0] snp_adr;
-    wire        icinv_stb;             // observable in sims (TWB-COH-003)
+    wire        icinv_stb;             // observable in sims
     wire [15:4] icinv_adr;
 
     (* ASYNC_REG = "TRUE" *) reg [1:0] ext_irq_sync;

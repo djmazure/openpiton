@@ -29,14 +29,14 @@ CORE_WINDOWS = (
     (0x0, 0xC000_0000, 0x0),
 )
 
-# mw_xics (OPN-P2.15, design/chipset/microwatt/rtl/mw_xics.v): ICP at +0, 16 bytes per CPU
+# mw_xics (design/chipset/microwatt/rtl/mw_xics.v): ICP at +0, 16 bytes per CPU
 # (XIRR_POLL, XIRR, -, MFRR: icp-native.c struct icp_ipl); ICS at +0x1000 with
 # its XIVEs at +0x800 + 4n (ics-native.c ics_native_xive), so the ICS reg must
 # span 0x1000, not upstream microwatt.dts's 0x100. Source 0x10 is the UART.
 XICS_WINDOW = 0x2000
 XICS_ICS_OFFSET = 0x1000
 XICS_UART_SOURCE = 0x10
-XICS_CONVERTED_NCPUS = (1, 2)   # design/chipset/microwatt/rtl/mw_xics.v (OPN-P2.15)
+XICS_CONVERTED_NCPUS = (1, 2)   # design/chipset/microwatt/rtl/mw_xics.v
 
 # devices*.xml entries that are chipset plumbing, not something Linux drives
 NOT_FOR_LINUX = ("chip", "iob")
@@ -62,7 +62,7 @@ def _cells2(v):
 # node the kernel falls back to matching the PVR, which has no Microwatt entry,
 # so CPU_FTR_ARCH_300 stays clear and mmu_pid_bits stays 0. PRTB_SIZE_SHIFT - 12
 # then wraps in the partition-table entry and the first fetch after the MMU is
-# enabled takes an ISI (rr-openpiton OPN-T2.1, observed on silicon). The feature
+# enabled takes an ISI (observed on a KV260). The feature
 # list is the kernel's own arch/powerpc/boot/dts/microwatt.dts (linux 6.6).
 CPU_FEATURES_NODE = '''
         ibm,powerpc-cpu-features {
@@ -103,7 +103,7 @@ CPU_FEATURES_NODE = '''
 # Only for a core built with its FPU (mw_core_flat HAS_FPU=true). The node makes
 # dt_cpu_ftrs.c feat_enable_fp() clear CPU_FTR_FPU_UNAVAILABLE; on an FPU-less
 # core every FP instruction traps (HEAI) and the kernel must emulate it
-# (MATH_EMULATION), so the feature must not be advertised (rr-openpiton OPN-P2.23).
+# (MATH_EMULATION), so the feature must not be advertised.
 FLOATING_POINT_NODE = '''
             floating-point {
                 hwcap-bit-nr = <27>;
@@ -121,7 +121,7 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
     uses as the dcbz / icbi / dcbst step: they must equal the core's real line
     sizes (a larger d-cache-block-size makes clear_page leave memory dirty)."""
     assert nCpus >= 1
-    # mw_syscon (OPN-P2.24) needs no DT node: Linux's Microwatt smp.c maps
+    # mw_syscon needs no DT node: Linux's Microwatt smp.c maps
     # SYSCON at a hard-coded 0xC000_0000 ("XXX get from device tree").
     known = ("mem", "uart", "mw_xics", "mw_syscon") + NOT_FOR_LINUX
     unknown = [d["name"] for d in devices if d["name"] not in known]
@@ -139,7 +139,7 @@ def gen_power_dts(devices, nCpus, cpuFreq, timeBaseFreq, periphFreq, cache,
                          "ICS (+0x1000, XIVEs at +0x800) needs" % (xics[0]["length"], XICS_WINDOW))
     if xics and nCpus not in XICS_CONVERTED_NCPUS:
         # mw_xics.v instantiates one converted netlist per CPU
-        # count (hooks convert_mw_xics / convert_mw_xics2) and refuses others
+        # count (convert_microwatt xics / xics2) and refuses others
         raise ValueError("powerlib: mw_xics is converted for %s CPUs, the config has %d"
                          % (" or ".join(str(n) for n in XICS_CONVERTED_NCPUS), nCpus))
     if len(mems) != 1:

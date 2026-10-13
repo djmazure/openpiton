@@ -2,26 +2,25 @@
 // SPDX-License-Identifier: MIT
 //
 // pmesh_hp_shim - OpenPiton chipset memory master -> Zynq UltraScale+ PS HP port
-// (OPN-P2.11). Contract: ../requirements.yml.
 //
 // Slave side: noc_axi4_bridge (512-bit). It only issues single-beat, 64 B,
-// 64 B-aligned transfers (HPS-IN-001), so each maps to ONE 4-beat, 16 B INCR
+// 64 B-aligned transfers, so each maps to ONE 4-beat, 16 B INCR
 // burst on the 128-bit PS port:
 //   write: AW + 1 W beat  ->  AW(len 3, size 4) + W beats 0..3 (bytes 16k..16k+15)
 //   read:  AR             ->  AR(len 3, size 4), 4 R beats assembled in address order
 // Address: PS = OFFSET + A, only for A + 64 <= WINDOW. Everything else is
 // answered here - DECERR outside the carve-out, SLVERR outside the input
-// domain - and never reaches m_axi_* (HPS-NEG-001): the PS DDR outside the
+// domain - and never reaches m_axi_*: the PS DDR outside the
 // carve-out is the host's own memory.
 //
 // One write and one read are in flight at a time (the bridge allows two of
 // each; this halves its peak rate, which the P-Mesh rarely approaches).
-// Byte order (HPS-MAP-004): slave lane i <-> PS byte OFFSET + A + (i XOR 7),
+// Byte order: slave lane i <-> PS byte OFFSET + A + (i XOR 7),
 // i.e. every 64-bit doubleword byte-reversed, strobes with their bytes. The
 // bridge puts P-Mesh byte A on lane A XOR 7 (big-endian flits moved whole), so
 // this makes the carve-out address-invariant: P-Mesh byte A = PS byte
 // OFFSET + A, and PS software loads an image with a plain file copy. A pure
-// wire permutation; measured end to end in test_piton_mw_shell.
+// wire permutation, checked end to end in simulation.
 `default_nettype none
 module pmesh_hp_shim #(
     parameter [63:0] OFFSET   = 64'h0000_0000_4000_0000,
@@ -101,7 +100,7 @@ module pmesh_hp_shim #(
 );
     localparam [1:0] OKAY = 2'b00, SLVERR = 2'b10, DECERR = 2'b11;
 
-    // HPS-MAP-004: reverse the bytes of each 64-bit doubleword (and the
+    // reverse the bytes of each 64-bit doubleword (and the
     // strobe bits with them). A 16 B beat holds two whole doublewords, so the
     // permutation is beat-local.
     function [127:0] dw_rev128(input [127:0] d);
@@ -119,7 +118,7 @@ module pmesh_hp_shim #(
         end
     endfunction
 
-    // Fixed burst shape on the PS port (HPS-MAP-002/003)
+    // Fixed burst shape on the PS port
     assign m_axi_awlen   = 8'd3;
     assign m_axi_awsize  = 3'd4;
     assign m_axi_awburst = 2'b01;
@@ -138,9 +137,9 @@ module pmesh_hp_shim #(
     // A request is served only if it has the bridge's shape and fits the window
     function [1:0] verdict(input [63:0] a, input [7:0] len, input [2:0] size);
         if (len != 8'd0 || size != 3'd6 || a[5:0] != 6'd0)
-            verdict = SLVERR;                                   // HPS-IN-001
+            verdict = SLVERR;                                   // outside the input domain
         else if (WINDOW < 64'd64 || a > WINDOW - 64'd64)
-            verdict = DECERR;                                   // HPS-NEG-001
+            verdict = DECERR;                                   // outside the carve-out
         else
             verdict = OKAY;
     endfunction

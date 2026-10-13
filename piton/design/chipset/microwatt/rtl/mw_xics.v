@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 // SPDX-License-Identifier: MIT
 //
-// mw_xics — Microwatt XICS as an OpenPiton chipset device (OPN-P2.15).
-// Contract: hw/ip/mw_xics/requirements.yml.
+// mw_xics — Microwatt XICS as an OpenPiton chipset device.
 //
 //   NoC2 in / NoC3 out (device port "mw_xics", 8 KB window)
-//     -> mw_noc_wb (hw/ip/mw_noc_wb: noc_axilite_bridge, AXI-lite -> one-beat
+//     -> mw_noc_wb (mw_noc_wb.v: noc_axilite_bridge, AXI-lite -> one-beat
 //        Wishbone I/O, 32-bit; the byte-lane mapping is documented there)
 //     -> mw_xics_flat: xics_icp at +0x0000, xics_ics at +0x1000
 //
-// Byte lanes (XICS-MAP-002): see mw_noc_wb.v.
+// Byte lanes: see mw_noc_wb.v.
 `include "define.tmp.h"
 
 module mw_xics #(
@@ -43,8 +42,8 @@ module mw_xics #(
     );
 
     // GHDL fixes generics at conversion, so each supported NCPUS is its own
-    // converted netlist (OPN-P2.15): mw_xics_flat (1 CPU, hooks convert_mw_xics)
-    // and mw_xics_flat_n2 (2 CPUs, convert_mw_xics2), both in Flist.xics.
+    // converted netlist: mw_xics_flat (1 CPU, convert_microwatt xics)
+    // and mw_xics_flat_n2 (2 CPUs, convert_microwatt xics2), both in Flist.mw_xics.
     // Any other width is refused rather than silently driving the wrong tiles;
     // add a conversion hook to support it.
     generate if (NCPUS == 1) begin : g_n1

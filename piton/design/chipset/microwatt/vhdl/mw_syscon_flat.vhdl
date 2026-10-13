@@ -1,15 +1,14 @@
 -- SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 -- SPDX-License-Identifier: MIT
 --
--- mw_syscon_flat — Microwatt syscon with flat, record-free ports (OPN-P2.24)
+-- mw_syscon_flat — Microwatt syscon with flat, record-free ports
 --
--- The GHDL->Verilog conversion (hw/scripts/convert_microwatt.sh, top
+-- The GHDL->Verilog conversion (piton/tools/bin/convert_microwatt, top
 -- mw_syscon_flat) elaborates THIS entity, so mw_syscon.v instantiates plain
 -- ports instead of escaped record fields. syscon is Microwatt's own,
--- unmodified (ext/microwatt/syscon.vhdl).
+-- unmodified (design/chip/tile/microwatt/syscon.vhdl).
 --
--- One 256-byte window (contract hw/ip/mw_syscon/requirements.yml
--- SYSCON-MAP-001, the SYSCON_LENGTH Linux maps): wb_adr is the WORD address
+-- One 256-byte window (the SYSCON_LENGTH Linux maps): wb_adr is the WORD address
 -- inside it (byte offset >> 2), 6 bits. syscon decodes adr(6 downto 1) as the
 -- 64-bit register and adr(0) as its high/low word, so adr(6) is 0 here: the
 -- registers beyond 0x100 (none that Linux uses) are not reachable.
@@ -85,7 +84,7 @@ begin
             rst          => rst,
             wishbone_in  => wb_in,
             wishbone_out => wb_out,
-            dram_at_0    => open,             -- SYSCON-DIV-003: drives nothing
+            dram_at_0    => open,             -- drives nothing
             core_reset   => core_reset,
             soc_reset    => open,
             alt_reset    => open,

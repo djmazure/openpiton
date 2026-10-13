@@ -4,7 +4,7 @@
 // SIMULATION MODEL of OpenPiton's `afifo_w64_d128_std` - a Xilinx FIFO
 // Generator core (design/chipset/xilinx/*/ip_cores/afifo_w64_d128_std.xci:
 // Independent_Clocks_Block_RAM, 64 x 128, standard read mode,
-// Full_Flags_Reset_Value 1, Dout_Reset_Value 0). OPN-P2.11 needs it because
+// Full_Flags_Reset_Value 1, Dout_Reset_Value 0). The KV260 memory path needs it because
 // noc_bidir_afifo (f1_mc_top's clock crossing) instantiates it and only the
 // .xci exists; a synthesis build gets the real core from the IP flow, never
 // from this file.

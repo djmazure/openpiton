@@ -1,25 +1,25 @@
 // SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 // SPDX-License-Identifier: MIT
 //
-// mw_tile — converted Microwatt core + tri_wb_bridge, TRI ports at the top (OPN-P2.3)
+// mw_tile — converted Microwatt core + tri_wb_bridge, TRI ports at the top
 //
-// The TRI ports keep tri_wb_bridge's exact names, so the same L1.5 model and
-// always-on checker (hw/sim/cocotb/tests/tri_harness.py) drive this top
-// unchanged. The snoop port and wbd_stall are also brought out, read-only, so
-// the harness can check that every invalidation reaches the core (TWB-NEG-004)
-// and is presented while the data master is stalled (TWB-COH-002).
+// The TRI ports keep tri_wb_bridge's exact names, so a testbench that drives
+// the bridge can drive this top unchanged. The snoop port and wbd_stall are
+// also brought out, read-only, so a testbench can check that every
+// invalidation reaches the core and is presented while the data master is
+// stalled.
 //
-// mw_core_flat is generated from Microwatt VHDL by hw/scripts/convert_microwatt.sh
-// (rr hooks.pre_sim); it is never edited by hand.
+// mw_core_flat is generated from Microwatt VHDL by piton/tools/bin/convert_microwatt;
+// it is never edited by hand.
 
 `default_nettype none
 
 module mw_tile (
     input  wire        clk,
     input  wire        rst_n,
-    input  wire        core_hold,       // 1: core held in reset, bridge live (OPN-P2.4 wakeup)
-    input  wire [7:0]  cpu_index,       // PIR of this core: the tile's flat id (OPN-P2.15)
-    input  wire        ext_irq,         // XICS level interrupt, synchronised to clk (OPN-P2.15)
+    input  wire        core_hold,       // 1: core held in reset, bridge live (until the IOB wakeup)
+    input  wire [7:0]  cpu_index,       // PIR of this core: the tile's flat id
+    input  wire        ext_irq,         // XICS level interrupt, synchronised to clk
 
     // TRI: bridge -> L1.5
     output wire        transducer_l15_val,
@@ -70,7 +70,7 @@ module mw_tile (
     output wire        snp_stb,
     output wire        snp_we,
     output wire [28:0] snp_adr,
-    output wire        icinv_stb,     // I-cache index invalidation (TWB-COH-003), observable
+    output wire        icinv_stb,     // I-cache index invalidation, observable
     output wire [15:4] icinv_adr,
     output wire        wbd_stall,
     output wire        terminated
@@ -86,7 +86,7 @@ module mw_tile (
     wire [7:0]  wbd_sel;
     wire [63:0] wbd_dat_w, wbd_dat_r;
 
-    // MW_MUTANT_NO_SNOOP (test-only mutation, OPN-P2.5): the bridge still
+    // MW_MUTANT_NO_SNOOP (test-only mutation): the bridge still
     // produces every snoop, but the core never sees one, so its L1D keeps
     // lines the L1.5 has invalidated. The coherence test must go red with it.
     wire core_snp_stb;
@@ -96,10 +96,10 @@ module mw_tile (
     assign core_snp_stb = snp_stb;
 `endif
 
-    // MW_MUTANT_NO_ICINV (test-only mutation, OPN-P2.13): the bridge still
+    // MW_MUTANT_NO_ICINV (test-only mutation): the bridge still
     // forwards every L1.5 I-side invalidation, but the core never sees one, so
-    // its icache keeps code another tile rewrote. test_piton_mw_icoh must go
-    // red with it.
+    // its icache keeps code another tile rewrote. An I-side coherence test
+    // must fail with it.
     wire core_icinv_stb;
 `ifdef MW_MUTANT_NO_ICINV
     assign core_icinv_stb = 1'b0;
@@ -107,9 +107,9 @@ module mw_tile (
     assign core_icinv_stb = icinv_stb;
 `endif
 
-    // Test-only mutations (OPN-P2.15), each must turn test_piton_mw_smp red:
-    //   MW_MUTANT_TB_PER_WAKE - the timebase restarts when THIS tile is woken
-    //                           (the pre-P2.15 wiring), so tiles disagree;
+    // Test-only mutations, each must make a multi-tile test fail:
+    //   MW_MUTANT_TB_PER_WAKE - the timebase restarts when THIS tile is woken,
+    //                           so tiles disagree;
     //   MW_MUTANT_PIR0        - every core reads PIR 0 (the baked-in CPU_INDEX).
     wire       core_tb_rst;
     wire [7:0] core_cpu_index;
@@ -126,7 +126,7 @@ module mw_tile (
 
     mw_core_flat u_core (
         .clk(clk), .rst(~rst_n | core_hold),
-        // timebase: system reset only, so every tile's timebase agrees (OPN-P2.15)
+        // timebase: system reset only, so every tile's timebase agrees
         .tb_rst(core_tb_rst), .cpu_index(core_cpu_index),
         .wbi_cyc(wbi_cyc), .wbi_stb(wbi_stb), .wbi_adr(wbi_adr), .wbi_sel(wbi_sel),
         .wbi_dat_r(wbi_dat_r), .wbi_ack(wbi_ack), .wbi_stall(wbi_stall),

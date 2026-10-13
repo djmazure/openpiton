@@ -1,14 +1,14 @@
 -- SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 -- SPDX-License-Identifier: MIT
 --
--- mw_xics_flat — Microwatt XICS (ICP + ICS) with flat, record-free ports (OPN-P2.15)
+-- mw_xics_flat — Microwatt XICS (ICP + ICS) with flat, record-free ports
 --
--- The GHDL->Verilog conversion (hw/scripts/convert_microwatt.sh, top
+-- The GHDL->Verilog conversion (piton/tools/bin/convert_microwatt, top
 -- mw_xics_flat) elaborates THIS entity, so mw_xics.v instantiates plain ports
 -- instead of escaped record fields. xics_icp and xics_ics are Microwatt's own,
--- unmodified (ext/microwatt/xics.vhdl).
+-- unmodified (design/chip/tile/microwatt/xics.vhdl).
 --
--- One 8 KB window (contract hw/ip/mw_xics/requirements.yml XICS-MAP-001):
+-- One 8 KB window:
 --   wb_adr is the WORD address inside it (byte offset >> 2), 11 bits;
 --   wb_adr(10) = byte bit 12 selects the block: 0 = ICP (base + 0x0000),
 --   1 = ICS (base + 0x1000). Each block sees the low 10 word-address bits, as

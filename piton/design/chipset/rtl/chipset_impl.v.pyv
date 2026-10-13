@@ -1250,9 +1250,9 @@ print(str)
 
 `endif // ifdef PITON_RV64_PLATFORM
 
-///////////////////////////////
-// Microwatt XICS (OPN-P2.15) //
-///////////////////////////////
+////////////////////
+// Microwatt XICS //
+////////////////////
 // Present exactly when devices*.xml lists a "mw_xics" port; PITON_MW_XICS
 // carries the interrupt wires to the tiles. The two must agree - either
 // mismatch is an elaboration error naming the fix, never a silent tie-off.
@@ -1285,9 +1285,9 @@ else:
 `endif''')
 %>
 
-/////////////////////////////////
-// Microwatt syscon (OPN-P2.24) //
-/////////////////////////////////
+//////////////////////
+// Microwatt syscon //
+//////////////////////
 // Present exactly when devices*.xml lists a "mw_syscon" port; PITON_MW_SYSCON
 // carries the CPU_CTRL run wires to the tiles. As for mw_xics, either mismatch
 // is an elaboration error naming the fix, never a silent tie-off.

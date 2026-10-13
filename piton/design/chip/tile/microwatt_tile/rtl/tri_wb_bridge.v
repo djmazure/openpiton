@@ -4,43 +4,41 @@
 // tri_wb_bridge — Microwatt (pipelined Wishbone B4) <-> OpenPiton TRI (L1.5)
 //
 // Connects an unmodified-datapath Microwatt core to OpenPiton/BYOC's
-// Transaction-Response Interface. Contract: requirements.yml (TWB-*).
-// Design: tich-super docs/strategy/openpiton-microwatt-RTL-P3.1747.md sec 3.3.
+// Transaction-Response Interface.
 //
 // Architecture (deliberately simple; correctness first):
 //   * ONE TRI transaction in flight. A Wishbone transfer is accepted only when
 //     the bridge is idle; it becomes one TRI request (reads, LR) or one TRI
-//     request per naturally-aligned chunk (writes, TWB-MAP-001), and the
+//     request per naturally-aligned chunk (writes), and the
 //     Wishbone ack is returned once the last TRI response has arrived. Program
-//     order is therefore preserved by construction (TWB-ORD-001).
-//   * Round-robin arbitration between the instruction and data masters
-//     (TWB-ARB-001).
-//   * Coherence (TWB-COH-001/002): a direct-mapped shadow tag per L1D index,
+//     order is therefore preserved by construction.
+//   * Round-robin arbitration between the instruction and data masters.
+//   * Coherence: a direct-mapped shadow tag per L1D index,
 //     written on every cacheable data fill. Any L1.5 message carrying a dcache
 //     invalidation (EVICT_REQ or ST_ACK with inval_dcache_inval/all_way, or a
 //     LOAD_RET with cross_invalidate) clears the shadow entry and emits ONE
 //     snoop write on snp_* with wbd_stall held high in that cycle, so
 //     Microwatt's no-handshake snoop port cannot mask it.
-//   * I-side coherence (TWB-COH-003, OPN-P2.13): any L1.5 message carrying
+//   * I-side coherence: any L1.5 message carrying
 //     inval_icache_inval or inval_icache_all_way is forwarded, in the cycle it
 //     is consumed, as an icache INDEX invalidation (icinv_stb/icinv_adr = the
 //     message's address bits [15:4]); the core clears every way of that index.
 //     Power ISA icbi acts on all processors and Linux relies on it, but
 //     Microwatt's icbi reaches only its own icache: without this, code another
-//     tile rewrites runs stale here (test_piton_mw_icoh).
-//   * Every L1.5 message is consumed (transducer_l15_req_ack) (TWB-HS-002).
+//     tile rewrites runs stale here.
+//   * Every L1.5 message is consumed (transducer_l15_req_ack).
 //
 // Byte order: Wishbone lane k = byte at dword*8+k (little-endian lanes);
 // TRI words are big-endian (pico_decoder.v:142-144). Store data is REPLICATED
 // across the 64-bit word for sub-doubleword sizes (as pico_decoder.v:134 does),
 // so it is correct whether the L1.5 selects bytes by address or by position.
 //
-// Scope assumptions carried by the contract, not re-checked here:
-//   * direct-mapped Microwatt L1D with 16 B lines (TWB-IN-003);
+// Scope assumptions, not re-checked here:
+//   * direct-mapped Microwatt L1D with 16 B lines;
 //   * lwarx reads (wbd_reserve) do NOT allocate in the Microwatt dcache, since
 //     the bridge does not shadow-tag them. Guaranteed by the Microwatt dcache's
-//     EXT_ATOMICS mode (OPN-P3.1) and pinned by ext/microwatt
-//     dcache_ext_atomics_tb.vhdl check EXT2 (mutation "lwarx allocates" is killed).
+//     EXT_ATOMICS mode, and checked by Microwatt's dcache_ext_atomics_tb.vhdl
+//     (check EXT2).
 
 `default_nettype none
 
@@ -79,7 +77,7 @@ module tri_wb_bridge #(
     output wire        snp_we,
     output wire [28:0] snp_adr,
 
-    // I-cache index invalidation into the Microwatt core (TWB-COH-003)
+    // I-cache index invalidation into the Microwatt core
     output wire        icinv_stb,
     output wire [15:4] icinv_adr,
 
@@ -129,7 +127,7 @@ module tri_wb_bridge #(
 );
 
     // ------------------------------------------------------------------
-    // Encodings (ext/openpiton piton/design/include)
+    // Encodings (piton/design/include)
     // ------------------------------------------------------------------
     localparam [4:0] LOAD_RQ  = 5'b00000;   // iop.h
     localparam [4:0] IMISS_RQ = 5'b10000;   // iop.h
@@ -152,14 +150,14 @@ module tri_wb_bridge #(
     localparam [2:0] SZ_32B = 3'b110;
 
     // ------------------------------------------------------------------
-    // Constant tie-offs (TWB-NEG-005, TWB-ORD-001 single memory thread)
+    // Constant tie-offs (a single memory thread)
     // ------------------------------------------------------------------
     assign transducer_l15_threadid             = 1'b0;
     assign transducer_l15_prefetch             = 1'b0;
     assign transducer_l15_invalidate_cacheline = 1'b0;
     assign transducer_l15_blockstore           = 1'b0;
     assign transducer_l15_blockinitstore       = 1'b0;
-    assign transducer_l15_l1rplway             = 2'b00;   // direct-mapped L1D (TWB-IN-003)
+    assign transducer_l15_l1rplway             = 2'b00;   // direct-mapped L1D
     assign transducer_l15_data_next_entry      = 64'd0;
     assign transducer_l15_csm_data             = 33'd0;
 
@@ -251,11 +249,11 @@ module tri_wb_bridge #(
     wire grant_d = can_accept & req_d & ~grant_i;
 
     assign wbi_stall = ~grant_i;
-    // TWB-HS-003: wbd_stall says whether a data request presented NOW would be
+    // wbd_stall says whether a data request presented NOW would be
     // accepted, independently of wbd_stb - Microwatt's DO_STCX waits for
     // stall=0 before raising stb, so a stall that falls only in answer to stb
     // deadlocks every stcx. With stb high this is exactly ~grant_d.
-    // TWB-COH-002: wbd_stall is forced high in any cycle a snoop is presented.
+    // wbd_stall is forced high in any cycle a snoop is presented.
     wire i_wins = req_i & (rr_pri_i | ~req_d);
     assign wbd_stall = ~can_accept | i_wins | snp_pend;
 
@@ -269,10 +267,10 @@ module tri_wb_bridge #(
 
     // ------------------------------------------------------------------
     // L1.5 message intake. Every message is consumed in the cycle it is
-    // presented (TWB-HS-002, NEG-009): a refused message stalls the L1.5 at
+    // presented: a refused message stalls the L1.5 at
     // S3, which mis-counts NoC1 credits. A snoop is presented from registers
     // (snp_pend/snp_line), so a message taken while one is on snp_* only
-    // loads the NEXT snoop and cannot overwrite it (TWB-NEG-004).
+    // loads the NEXT snoop and cannot overwrite it.
     // ------------------------------------------------------------------
     wire take = l15_transducer_val;
     assign transducer_l15_req_ack = take;
@@ -287,11 +285,11 @@ module tri_wb_bridge #(
     wire [L1D_INDEX_BITS-1:0] cur_idx = cur_adr[1 +: L1D_INDEX_BITS];   // dword adr -> line index
     wire msg_cross = (l15_transducer_returntype == LOAD_RET) & l15_transducer_cross_invalidate;
     // The response may come in the ack cycle itself (INT_VEC_DIS: acked in S3
-    // with its ST_ACK) or later, never before (TWB-HS-001).
+    // with its ST_ACK) or later, never before.
     wire msg_is_rsp = ((state == S_RSP) | ((state == S_REQ) & l15_transducer_ack))
                     & (l15_transducer_returntype == expect_rt);
 
-    // Data word for the addressed doubleword (TWB-MAP-002)
+    // Data word for the addressed doubleword
     reg [63:0] sel_word;
     always @(*) begin
         if (cur_i) begin
@@ -308,13 +306,13 @@ module tri_wb_bridge #(
 
     // ------------------------------------------------------------------
     // Next TRI chunk (combinational). Writes are split into naturally-aligned
-    // chunks covering exactly the selected lanes (TWB-MAP-001, NEG-001/002);
+    // chunks covering exactly the selected lanes;
     // sub-doubleword data is REPLICATED across the word (pico_decoder.v:134).
     // be_sh brings lane p to the top byte, so no part-select can go out of range.
     // ------------------------------------------------------------------
     // Writes and cache-inhibited reads are chunked over exactly the selected
-    // lanes (TWB-MAP-001, TWB-NEG-010: a device read must not touch its
-    // neighbours - OPN-T1.2); cacheable reads fetch whole lines.
+    // lanes (a device read must not touch its neighbours); cacheable reads
+    // fetch whole lines.
     wire        cur_chunked = cur_we | (cur_nc & ~cur_res);
     wire [7:0]  cur_mask = cur_chunked ? rem_sel : cur_sel;
     wire [2:0]  nxt_p    = first_lane(cur_mask);
@@ -361,7 +359,7 @@ module tri_wb_bridge #(
                 if (msg_is_rsp) begin
                     // chunked nc read: the first response supplies the whole word, later
                     // ones only their chunk's lanes - every byte is from a TRI response
-                    // for this doubleword, never a previous beat (TWB-NEG-006)
+                    // for this doubleword, never a previous beat
                     if (expect_rt == LOAD_RET && cur_chunked && rem_sel != cur_sel)
                         rsp_dat <= (rsp_dat & ~lane_bits(chunk_m)) | (bswap64(sel_word) & lane_bits(chunk_m));
                     else
@@ -411,7 +409,7 @@ module tri_wb_bridge #(
                     transducer_l15_nc     <= cur_nc;
                     transducer_l15_data   <= 64'd0;
                     if (cur_i) begin
-                        // I-fill: 32 B block, naturally aligned (TWB-MAP-002, NEG-002)
+                        // I-fill: 32 B block, naturally aligned
                         transducer_l15_rqtype  <= IMISS_RQ;
                         transducer_l15_size    <= SZ_32B;
                         transducer_l15_address <= {8'd0, cur_adr[28:2], 5'd0};
@@ -430,7 +428,7 @@ module tri_wb_bridge #(
                         transducer_l15_address <= {8'd0, cur_adr, nxt_p};
                         expect_rt              <= ATOMIC_RES;
                     end else if (cur_nc) begin
-                        // cache-inhibited: this chunk's bytes only (TWB-NEG-010)
+                        // cache-inhibited: this chunk's bytes only
                         transducer_l15_rqtype  <= LOAD_RQ;
                         transducer_l15_size    <= size_enc(nxt_n);
                         transducer_l15_address <= {8'd0, cur_adr, nxt_p};
@@ -447,9 +445,9 @@ module tri_wb_bridge #(
 
                 // The L1.5 takes the header with header_ack (S1) and completes
                 // the request with ack (S1..S3). val drops after the header is
-                // taken - held, it would be taken again as a second request
-                // (TWB-NEG-008) - while every field stays put until ack, since
-                // the L1.5 reads the data up to S3 (TWB-HS-001, NEG-003).
+                // taken - held, it would be taken again as a second request -
+                // while every field stays put until ack, since
+                // the L1.5 reads the data up to S3.
                 S_REQ: begin
                     if (l15_transducer_header_ack)
                         transducer_l15_val <= 1'b0;

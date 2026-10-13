@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Daniel J. Mazure
 // SPDX-License-Identifier: MIT
 //
-// uart_16550 — open RTL in OpenPiton's Xilinx-IP slot (OPN-P2.16).
+// uart_16550 — open RTL in OpenPiton's Xilinx-IP slot.
 //
 // OpenPiton's chipset UART (io_ctrl/rtl/uart_top.v, PITON_UART16550) instantiates
 // a module named uart_16550 with the port list of Xilinx's AXI UART16550 IP.
 // That IP is encrypted: Verilator cannot run it, so the board image would not
 // be the design the simulation checked. This module fills the same slot with
-// the OpenCores 16550 register file Microwatt ships (ext/microwatt/uart16550,
+// the OpenCores 16550 register file Microwatt ships (design/chip/tile/microwatt/uart16550,
 // uart_regs + FIFOs; its Wishbone uart_top is not used, which also avoids the
 // name clash with OpenPiton's uart_top).
 //
@@ -19,9 +19,6 @@
 // One AXI-lite transaction at a time (uart_top's noc_axilite_bridge issues one).
 // A read strobes wb_re_i for one cycle, which is when the 16550's read side
 // effects happen (RBR pop, LSR/IIR clear), and captures the byte that cycle.
-//
-// TODO(rr UART IP, owner request 2026-09-24): replace with the rr 16550-family
-// UART IP once it exists; this module is its slot.
 
 `timescale 1ps/1ps
 
