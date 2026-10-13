@@ -479,51 +479,6 @@ module tri_wb_bridge #(
         end
     end
 
-`ifdef RR_REA_TRI_SLOT
-    // OPN-T2.1: REA on both sides of this bridge, in the kv260_mw_1x1_rea
-    // target only (tcl/hooks/rea_tri_slot.tcl; simulations never see it).
-    // The kernel's early page loop stores page|0x009 into the chipset UART
-    // window. The Wishbone side shows the physical address Microwatt issues;
-    // the TRI side shows the 40-bit address this bridge sends to the L1.5.
-    // On BSCANE2 USER1: on the xck26 rr's IR table reaches only USER1 (RTL-P2.1383; IR 0x025
-    // for USER2 lands on the USER1 core, measured 2026-09-25), so the core we
-    // need to read sits there and u_uart_rea moves to USER2.
-    // Probe order is LSB-first and MUST match debug/u_tri_rea.yml:
-    //   [0] wbd_acc  [1] wbd_we  [2] wbd_nc  [10:3] wbd_sel  [39:11] wbd_adr
-    //   [71:40] wbd_dat_lo  [103:72] wbd_dat_hi  [104] tri_val  [109:105] tri_rqtype
-    //   [110] tri_nc  [113:111] tri_size  [153:114] tri_addr  [154] wbi_acc
-    //   [183:155] wbi_adr
-    wire rea_wbd_acc = wbd_cyc & wbd_stb & ~wbd_stall;
-    wire rea_wbi_acc = wbi_cyc & wbi_stb & ~wbi_stall;
-    wire [183:0] rea_probe = {wbi_adr, rea_wbi_acc,
-                              transducer_l15_address, transducer_l15_size,
-                              transducer_l15_nc, transducer_l15_rqtype,
-                              transducer_l15_val, wbd_dat_w[63:32], wbd_dat_w[31:0],
-                              wbd_adr, wbd_sel, wbd_nc, wbd_we, rea_wbd_acc};
-
-    // Own power-on reset: rst_n here is pl_resetn AND the loader's RUN bit,
-    // and the analyzer must run while the guest is held (see uart_16550.v).
-    reg [15:0] rea_por_sr = 16'hFFFF;
-    always @(posedge clk) rea_por_sr <= {rea_por_sr[14:0], 1'b0};
-
-    rr_rea_xilinx7 #(
-        .G_SAMPLE_W    (184),
-        .G_DEPTH       (4096),
-        .G_TIMESTAMP_W (32),
-        .G_NUM_CHAN    (1),
-        .G_NUM_SOURCE  (1),
-        .G_CTRL_CHAIN  (1),     // BSCANE2 USER1: the one chain rr reaches on xck26 (RTL-P2.1383)
-        .G_QUAL_CONDS  (1)
-    ) u_tri_rea (
-        .sample_clk_i  (clk),
-        .sample_rst_i  (rea_por_sr[15]),
-        .probe_i       (rea_probe),
-        .ext_trigger_i (1'b0),
-        .source_o      (),
-        .trigger_o     ()
-    );
-`endif
-
 endmodule
 
 `default_nettype wire
