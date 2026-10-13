@@ -175,6 +175,8 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'ariane' => 0,
         'pico' => 0,
         'pico_het' => 0,
+        'microwatt' => 0,
+        'mw_platform' => 0,
         'post_process_cmd' => [],
         'pre_process_cmd' => [],
         'reg_count' => 0,
@@ -199,6 +201,8 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'rv64_march=s' => "",
         'rv64_target_triple=s' => "",
         'rv64_platform' => 0,
+        'power' => 0,
+        'power_target_triple' => "",
         'other_sim_build' => 0,
         'sim_build_args' => [],
         'other_sim_build_cmd' => "",
@@ -328,10 +332,13 @@ GetOptions (\%opt,
             'ariane!',
             'pico!',
             'pico_het!',
+            'microwatt!',
+            'mw_platform!',
             'sparcv9!',
             'rv32!',
             'rv64!',
             'rv64_platform!',
+            'power!',
             'regress!',
             'regress_id=s',
             'report!',
@@ -346,16 +353,21 @@ GetOptions (\%opt,
 
 die ("DIE. -ariane and -pico/-pico_het cannot be set simultaneously") if ($opt{ariane} && ($opt{pico} || $opt{pico_het})) ;
 die ("DIE. -pico and -pico_het cannot both be set") if ($opt{pico} && $opt{pico_het}) ;
+die ("DIE. -microwatt cannot be combined with -ariane, -pico or -pico_het")
+    if ($opt{microwatt} && ($opt{ariane} || $opt{pico} || $opt{pico_het})) ;
 
 # Setting ost1 by default. This works better than default to 1
 # for heterogeneous-ISA stuff
-if (!$opt{pico} && !$opt{ariane}) {
+if (!$opt{pico} && !$opt{ariane} && !$opt{microwatt}) {
   $opt{ost1} = 1 ;
 }
 
 push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
+die ("DIE. -mw_platform needs -microwatt") if ($opt{mw_platform} && !$opt{microwatt}) ;
+push (@{$opt{config_cpp_args}}, "-DFLIST_MICROWATT") if ($opt{microwatt}) ;
+push (@{$opt{config_cpp_args}}, "-DFLIST_MW_PLATFORM") if ($opt{mw_platform}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
 
 ################################################################################
@@ -2185,6 +2197,8 @@ sub assemble_diag
     elsif ($opt{precompiled} and ($opt{rv32} | $opt{rv64})) { $diag_name = "diag.exe"  ; }
     elsif (($opt{rv32} | $opt{rv64}) and ($opt{asm_diag_name} =~ /\.S/)) { $diag_name = "diag.S" ; }
     elsif (($opt{rv32} | $opt{rv64}) and ($opt{asm_diag_name} =~ /\.c/)) { $diag_name = "diag.c" ; }
+    elsif ($opt{power} and ($opt{asm_diag_name} =~ /\.S/)) { $diag_name = "diag.S" ; }
+    elsif ($opt{power} and ($opt{asm_diag_name} =~ /\.c/)) { $diag_name = "diag.c" ; }
     else { $diag_name = "diag.s" ; }
 
     # copy diagnostic to run area
@@ -2330,6 +2344,29 @@ sub assemble_diag
         }
         close($fh);
       }
+    }
+    if ($opt{power}) {
+      # OpenPOWER flow (Microwatt): power_cc builds diag.exe, power_img
+      # turns it into mem.image and symbol.tbl
+      if ($opt{power_target_triple}) {
+        $ENV{POWER_TARGET_TRIPLE} = $opt{power_target_triple} ;
+      } elsif (!$ENV{POWER_TARGET_TRIPLE}) {
+        $ENV{POWER_TARGET_TRIPLE} = "powerpc64le-linux-gnu" ;
+      }
+      print "$prg: assembling 64bit power diag ($ENV{POWER_TARGET_TRIPLE})\n" ;
+      my $defs = "-DPITON_NUMTILES=$ENV{PITON_NUM_TILES} ";
+      foreach my $additional_args (@{$opt{gcc_args}}) {
+        $defs .= " ${additional_args}";
+      }
+      my $cmd = "power_cc ${diag_name} \"$defs\"" ;
+      print "$prg: $cmd\n";
+      my $waitstatus = call_program($cmd, "power_cc.log");
+      die ("DIE. power_cc compilation error") if ($waitstatus) ;
+
+      $cmd = "power_img" ;
+      print "$prg: $cmd\n";
+      $waitstatus = call_program($cmd, "power_img.log");
+      die ("DIE. power_img error creating mem image") if ($waitstatus) ;
     }
     if ($opt{sparcv9}) {
       # standard flow for SAPRC
@@ -2557,6 +2594,8 @@ sub parse_args
             'rv64_march=s',
             'rv64_target_triple=s',
             'rv64_platform!',
+            'power!',
+            'power_target_triple=s',
             'other_sim_build!',
             'sim_build_args=s@',
             'other_sim_build_cmd=s',
@@ -2730,6 +2769,8 @@ sub parse_args
   $ENV{PITON_PICO}     = $opt{pico};
   $ENV{PITON_PICO_HET} = $opt{pico_het};
   $ENV{PITON_ARIANE}   = $opt{ariane};
+  $ENV{PITON_MICROWATT} = $opt{microwatt};
+  $ENV{PITON_MW_PLATFORM} = $opt{mw_platform};
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
 
@@ -2763,6 +2804,8 @@ sub parse_args
         push (@{$opt{config_rtl}}, "RTL_PICO" . $i);
     } elsif ($opt{ariane}) {
         push (@{$opt{config_rtl}}, "RTL_ARIANE" . $i);
+    } elsif ($opt{microwatt}) {
+        push (@{$opt{config_rtl}}, "RTL_MICROWATT" . $i);
     } elsif ($opt{ost1}) {
         push (@{$opt{config_rtl}}, "RTL_SPARC" . $i);
     }
@@ -3049,6 +3092,17 @@ VERILOG COMPILATION RELATED
            this specifies that the ARIANE RV64GC core shall be used
            in this case, programs are compiled and assembled using the RISCV GCC toolchain.
 
+    -microwatt
+           this specifies that the Microwatt (OpenPOWER, Power ISA 3.0) core shall be used.
+           in this case, programs are compiled and assembled using a powerpc64le GCC toolchain
+           (see -power_target_triple). The core is Verilog generated from Microwatt's VHDL:
+           run convert_microwatt once before building.
+
+    -mw_platform
+           with -microwatt: adds the chipset devices a Microwatt Linux needs, the XICS
+           interrupt controller and the syscon CPU_CTRL that starts secondary CPUs
+           (verif/env/manycore/devices_microwatt_platform.xml). 1 or 2 tiles.
+
 VERILOG RUNTIME RELATED
 
     -vcs_run/-novcs_run
@@ -3122,6 +3176,10 @@ this is the compiler used for RISC-V cores
     -rv64_target_triple
            specifies rv64 cross-compiler prefix (e.g. riscv64-unknown-elf)
            default varies by core
+
+    -power_target_triple
+           specifies the OpenPOWER cross-compiler prefix, defaults to
+           \$POWER_TARGET_TRIPLE or else powerpc64le-linux-gnu
 
     -rv64_march
            specifies rv64 march string (e.g. rv64imafdc)

@@ -1,0 +1,34 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+# SPDX-License-Identifier: MIT
+#
+# power_img - diag.exe (from power_cc) -> the files sims loads, the OpenPOWER
+# counterpart of rv64_img:
+#   mem.image   the program as a memory image at physical address 0, where
+#               Microwatt starts (mw_piton_core: core address = PA below 0xC000_0000)
+#   symbol.tbl  good_trap / bad_trap = the addresses of the `pass` / `fail`
+#               symbols (include/mw_diag.h). A Microwatt diag ends by storing
+#               to one of them, and pc_cmp matches the store's address.
+#   diag.dump   disassembly, for debugging
+#   diag.ev     empty (no SAS events)
+set -euo pipefail
+
+triple=${POWER_TARGET_TRIPLE:-powerpc64le-linux-gnu}
+
+"${triple}-objcopy" -O binary diag.exe diag.o
+# pad with zero to a 128-byte boundary
+pad=$(( (128 - $(stat -c %s diag.o) % 128) % 128 ))
+[ "$pad" -eq 0 ] || truncate -s "+$pad" diag.o
+printf "\n@0000000000000000\t// Section '.RED_SEC', segment 'text'\n" > mem.image
+xxd -g 8 -c 32 diag.o | awk '{printf("%s %s %s %s\n", $2, $3, $4, $5);}' >> mem.image
+
+pass=$("${triple}-nm" diag.exe | awk '$3 == "pass" {print $1}')
+fail=$("${triple}-nm" diag.exe | awk '$3 == "fail" {print $1}')
+[ -n "$pass" ] && [ -n "$fail" ] || {
+    echo "power_img: diag.exe has no pass/fail symbols (include mw_diag.h and end with MW_DIAG_END)" >&2
+    exit 1
+}
+printf "good_trap %s X %s\nbad_trap %s X %s\n" "$pass" "$pass" "$fail" "$fail" > symbol.tbl
+
+"${triple}-objdump" -d -z diag.exe > diag.dump
+touch diag.ev

@@ -139,6 +139,8 @@ if os.getenv("PITON_ARIANE") is not None:
 if os.getenv("PITON_MICROWATT") is not None:
     if int(os.getenv("PITON_MICROWATT")):
         fileName = "devices_microwatt.xml"
+        if int(os.getenv("PITON_MW_PLATFORM", "0")):
+            fileName = "devices_microwatt_platform.xml"
 
 DEVICES_XML_FILENAME = os.path.join(os.getenv("PROTOSYN_RUNTIME_DESIGN_PATH", ""),
                                     os.getenv("PROTOSYN_RUNTIME_BOARD", ""),

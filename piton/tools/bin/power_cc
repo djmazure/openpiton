@@ -1,0 +1,38 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+# SPDX-License-Identifier: MIT
+#
+# power_cc - build an OpenPOWER (Microwatt) diag into diag.exe, the sims
+# counterpart of rv64_cc. Called by sims (-microwatt) in the run directory.
+#
+# Usage: power_cc <diag.S|diag.c> "<extra gcc args>"
+#   diag.S  a complete program: it provides _start at address 0
+#   diag.c  a C program: linked behind include/mw_head.S, which provides
+#           _start, the exception vectors, a stack and the TOC, then calls main
+# Both are linked at address 0 (Microwatt's reset address) by
+# include/mw_diag.lds, and end with mw_pass / mw_fail (include/mw_diag.h).
+#
+# Needs POWER_TARGET_TRIPLE (sims sets it; default powerpc64le-linux-gnu).
+set -euo pipefail
+
+: "${DV_ROOT:?power_cc: DV_ROOT is not set (source piton/piton_settings.bash)}"
+triple=${POWER_TARGET_TRIPLE:-powerpc64le-linux-gnu}
+inc="$DV_ROOT/verif/diag/power/include"
+src=$1
+extra=${2:-}
+
+cc="${triple}-gcc"
+command -v "$cc" >/dev/null || { echo "power_cc: $cc not found (set -power_target_triple)" >&2; exit 1; }
+
+# Microwatt has no VSX/AltiVec; keep the compiler from emitting them.
+cflags="-Os -g -Wall -mlittle-endian -mcpu=power9 -mno-vsx -mno-altivec -msoft-float
+        -mno-string -mno-multiple -mstrict-align -ffreestanding -fno-stack-protector
+        -fno-pic -mcmodel=small -nostdlib -static -I$inc -D__MICROWATT_DIAG__"
+ldflags="-Wl,-T,$inc/mw_diag.lds -Wl,--no-dynamic-linker -Wl,-z,norelro -Wl,--build-id=none"
+
+# shellcheck disable=SC2086  # flag lists are word-split on purpose
+case "$src" in
+    *.S) $cc $cflags $extra $ldflags -o diag.exe "$src" ;;
+    *.c) $cc $cflags $extra $ldflags -o diag.exe "$inc/mw_head.S" "$src" ;;
+    *)   echo "power_cc: $src is neither .S nor .c" >&2; exit 1 ;;
+esac
