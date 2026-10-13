@@ -1,0 +1,7 @@
+// Microwatt tile core: what TILE_TYPE == MICROWATT_TILE instantiates
+// (mw_piton_core) and everything under it. mw_core_flat.v is generated from
+// Microwatt VHDL by piton/tools/bin/convert_microwatt (netlist "core").
+tri_wb_bridge.v
+mw_tile.v
+mw_piton_core.v
+../gen/microwatt/mw_core_flat.v

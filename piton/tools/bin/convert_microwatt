@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Daniel J. Mazure
+# SPDX-License-Identifier: MIT
+#
+# convert_microwatt — Microwatt's VHDL -> the Verilog netlists a Microwatt
+# OpenPiton system needs, for simulators that cannot read VHDL.
+#
+# Same recipe as Microwatt's own `make microwatt.v` (yosys + the ghdl plugin,
+# --std=08 --no-formal), with a flat-port wrapper as the elaboration top. The
+# wrappers live next to the RTL that instantiates them:
+#   design/chip/tile/microwatt_tile/vhdl/mw_core_flat.vhdl   (the core)
+#   design/chipset/microwatt/vhdl/mw_xics_flat.vhdl          (XICS ICP + ICS)
+#   design/chipset/microwatt/vhdl/mw_syscon_flat.vhdl        (syscon CPU_CTRL)
+# Microwatt itself is the submodule at design/chip/tile/microwatt.
+#
+# Vivado reads VHDL, so an FPGA build can list the wrappers and Microwatt's
+# sources directly instead.
+#
+# Usage: convert_microwatt [NETLIST...]
+#   with no argument, writes all six. NETLIST is one of:
+#     core        tile/microwatt_tile/gen/microwatt/mw_core_flat.v
+#     core_nofpu  tile/microwatt_tile/gen/microwatt_nofpu/mw_core_flat.v  (HAS_FPU=false)
+#     xics        chipset/microwatt/gen/mw_xics_flat.v         (1 CPU)
+#     xics2       chipset/microwatt/gen/mw_xics_flat_n2.v      (2 CPUs, module mw_xics_flat_n2)
+#     syscon      chipset/microwatt/gen/mw_syscon_flat.v       (1 CPU)
+#     syscon2     chipset/microwatt/gen/mw_syscon_flat_n2.v    (2 CPUs, module mw_syscon_flat_n2)
+# The 1- and 2-CPU XICS/syscon differ in their ports, so the 2-CPU netlists
+# are renamed to coexist in one build; mw_xics.v and mw_syscon.v instantiate the
+# one that matches PITON_NUM_TILES.
+#
+# Needs: DV_ROOT (as every OpenPiton tool), yosys with the ghdl plugin, GNU make.
+set -euo pipefail
+
+: "${DV_ROOT:?convert_microwatt: DV_ROOT is not set (source piton/piton_settings.bash)}"
+design="$DV_ROOT/design"
+mw="$design/chip/tile/microwatt"
+tile="$design/chip/tile/microwatt_tile"
+chipset="$design/chipset/microwatt"
+
+[ -f "$mw/Makefile" ] || {
+    echo "convert_microwatt: $mw is empty; run: git submodule update --init piton/design/chip/tile/microwatt" >&2
+    exit 1
+}
+
+# The core file list is Microwatt's own `core_files` Makefile variable, so a
+# file added upstream is picked up without editing this script.
+# shellcheck disable=SC2016  # $(core_files) is expanded by make, not the shell
+core_files=$(make --no-print-directory -C "$mw" -f Makefile -f - print_core_files \
+    <<< 'print_core_files: ; @echo $(core_files)')
+[ -n "$core_files" ] || { echo "convert_microwatt: empty core_files from $mw/Makefile" >&2; exit 1; }
+files=""
+for f in $core_files; do files="$files $mw/$f"; done
+# execute1 instantiates a `random` entity (darn). Microwatt's synthesis flow
+# supplies the deterministic nonrandom.vhdl; it also keeps sims reproducible.
+files="$files $mw/nonrandom.vhdl"
+
+ghdlsynth=$(yosys -H 2>/dev/null | grep -q '^ *ghdl' || echo "-m ghdl")
+
+# convert <output.v> <top> "<generics>" "<module rename or empty>" <extra.vhdl>...
+convert() {
+    local out=$1 top=$2 generics=$3 module=$4
+    shift 4
+    local tmp
+    tmp=$(mktemp -d)
+    # shellcheck disable=SC2086  # word-splitting of the file lists is intended
+    ( cd "$tmp" && yosys -q $ghdlsynth -p \
+        "ghdl --std=08 --no-formal $generics $files $* -e $top;${module:+ rename $top $module;} write_verilog -noattr out.v" )
+    mkdir -p "$(dirname "$out")"
+    mv "$tmp/out.v" "$out"
+    rm -rf "$tmp"
+    echo "convert_microwatt: wrote $out ($(wc -l < "$out") lines)"
+}
+
+one() {
+    case "$1" in
+        core)       convert "$tile/gen/microwatt/mw_core_flat.v" mw_core_flat "" "" \
+                        "$tile/vhdl/mw_core_flat.vhdl" ;;
+        core_nofpu) convert "$tile/gen/microwatt_nofpu/mw_core_flat.v" mw_core_flat "-gHAS_FPU=false" "" \
+                        "$tile/vhdl/mw_core_flat.vhdl" ;;
+        xics)       convert "$chipset/gen/mw_xics_flat.v" mw_xics_flat "" "" \
+                        "$chipset/vhdl/mw_xics_flat.vhdl" "$mw/xics.vhdl" ;;
+        xics2)      convert "$chipset/gen/mw_xics_flat_n2.v" mw_xics_flat "-gNCPUS=2" mw_xics_flat_n2 \
+                        "$chipset/vhdl/mw_xics_flat.vhdl" "$mw/xics.vhdl" ;;
+        syscon)     convert "$chipset/gen/mw_syscon_flat.v" mw_syscon_flat "" "" \
+                        "$chipset/vhdl/mw_syscon_flat.vhdl" "$mw/syscon.vhdl" "$mw/git.vhdl" ;;
+        syscon2)    convert "$chipset/gen/mw_syscon_flat_n2.v" mw_syscon_flat "-gNCPUS=2" mw_syscon_flat_n2 \
+                        "$chipset/vhdl/mw_syscon_flat.vhdl" "$mw/syscon.vhdl" "$mw/git.vhdl" ;;
+        *) echo "convert_microwatt: unknown netlist '$1' (core core_nofpu xics xics2 syscon syscon2)" >&2
+           exit 1 ;;
+    esac
+}
+
+if [ $# -eq 0 ]; then
+    set -- core core_nofpu xics xics2 syscon syscon2
+fi
+for n in "$@"; do one "$n"; done
