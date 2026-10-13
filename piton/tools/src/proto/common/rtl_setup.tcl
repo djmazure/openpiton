@@ -247,7 +247,7 @@ set CHIP_RTL_IMPL_FILES [list \
     "${DV_ROOT}/design/chip/tile/common/rtl/cluster_header.v" \
     "${DV_ROOT}/design/chip/tile/common/rtl/cluster_header_ctu.v" \
     "${DV_ROOT}/design/chip/tile/pico/rtl/picorv32.v" \
-    "${DV_ROOT}/design/chip/tile/pico/rtl/pico_reset.v" \
+    "${DV_ROOT}/design/common/rtl/pico_reset.v" \
     "${DV_ROOT}/design/chip/tile/sparc/rtl/sparc.v" \
     "${DV_ROOT}/design/chip/tile/sparc/rtl/sparc_core.v" \
     "${DV_ROOT}/design/chip/tile/sparc/rtl/cpx_spc_rpt.v" \

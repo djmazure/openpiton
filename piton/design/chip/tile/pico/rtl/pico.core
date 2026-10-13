@@ -8,7 +8,6 @@ filesets:
             - openpiton::piton_include
         files:
             - picorv32.v
-            - pico_reset.v
 
         file_type: verilogSource
 
