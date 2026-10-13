@@ -252,12 +252,42 @@ endtask // get_thread_status
                     spc0_inst_done <= `PICO_CORE0.launch_next_insn;
                     spc0_phy_pc_w <= {{16{`PICO_CORE0.reg_pc[31]}}, `PICO_CORE0.reg_pc[31:0]};
                 end
+        `else // RTL_PICO0
+        `ifdef RTL_MICROWATT0
+                // A Microwatt diag ends with a store to its pass or fail
+                // label (verif/diag/power/include/mw_diag.h). Microwatt's
+                // dcache is write-through, so every store reaches the TRI
+                // with its exact address; that address stands in for the PC.
+                assign spc0_thread_id = 2'b00;
+                assign spc0_rtl_pc = spc0_phy_pc_w;
+
+                always @(posedge clk) begin
+                    if (~rst_l) begin
+                      active_thread[(0*4)]   <= 1'b0;
+                      active_thread[(0*4)+1] <= 1'b0;
+                      active_thread[(0*4)+2] <= 1'b0;
+                      active_thread[(0*4)+3] <= 1'b0;
+                      spc0_inst_done         <= 0;
+                      spc0_phy_pc_w          <= 0;
+                    end else begin
+                      active_thread[(0*4)]   <= 1'b1;
+                      active_thread[(0*4)+1] <= 1'b1;
+                      active_thread[(0*4)+2] <= 1'b1;
+                      active_thread[(0*4)+3] <= 1'b1;
+                      // a store (PCX_REQTYPE_STORE) accepted by the L1.5
+                      spc0_inst_done         <= `MICROWATT_CORE0.transducer_l15_val &
+                                                `MICROWATT_CORE0.l15_transducer_header_ack &
+                                                (`MICROWATT_CORE0.transducer_l15_rqtype == 5'b00001);
+                      spc0_phy_pc_w          <= {24'b0, `MICROWATT_CORE0.transducer_l15_address};
+                    end
+                end
+        `endif // RTL_MICROWATT0
         `endif // RTL_PICO0
         `endif // RTL_ARIANE0
         `endif // RTL_SPARC0
         '''
-    pattern = ["SPARC0", "RTL_ARIANE0", "RTL_PICO0", "PATH0", "spc0", "sas_m0", "pcs0", "pcf0", "pcd0", "pce0", \
-                "IFQDP0", "DTUPATH0", "PICO_CORE0", "ARIANE_CORE0", "active_thread[(0"];
+    pattern = ["SPARC0", "RTL_ARIANE0", "RTL_PICO0", "RTL_MICROWATT0", "PATH0", "spc0", "sas_m0", "pcs0", "pcf0", "pcd0", "pce0", \
+                "IFQDP0", "DTUPATH0", "PICO_CORE0", "ARIANE_CORE0", "MICROWATT_CORE0", "active_thread[(0"];
     tt = ReplicatePattern(t, pattern);
     print(tt)
 %>
