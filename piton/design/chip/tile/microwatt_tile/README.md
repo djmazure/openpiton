@@ -51,6 +51,25 @@ Diags live in `verif/diag/power`:
 | `mw_hello.S` | PASS. Prints on the UART, then writes a line, flushes it with `dcbf` and reads it back |
 | `mw_hello_c.c` | PASS. The C variant (start-up code in `include/mw_head.S`) |
 | `mw_fail.S` | HIT BAD TRAP. The control: a flow that passes it checks nothing |
+| `mw_coh.S` | 2x1, PASS. Tile 1's store must invalidate the line tile 0 holds in its L1D: tile 0 passes when it reads the new value, fails if it still reads the old one after tile 1 is done |
+| `mw_coh4.S` | 2x2, PASS. One store from tile 0 must invalidate the line in all three other tiles' L1Ds (tiles 2 and 3 through Y routing) |
+| `mw_icoh.S` | 2x1, PASS. Tile 1 rewrites a function tile 0 has in its I-cache (`dcbst; sync; icbi; sync; isync`); tile 0 must then run the new code |
+
+The three multi-tile diags each have a red control: the same diag on a model
+built with a test-only mutation in `rtl/mw_tile.v` that drops the L1.5's
+invalidations before they reach Microwatt. They must HIT BAD TRAP:
+
+    sims -sys=manycore -x_tiles=2 -y_tiles=1 -microwatt -vlt_build
+    sims -sys=manycore -x_tiles=2 -y_tiles=1 -microwatt -vlt_run mw_coh.S     # PASS
+    sims -sys=manycore -x_tiles=2 -y_tiles=1 -microwatt -vlt_build -build_id=nosnoop \
+         -config_rtl=MW_MUTANT_NO_SNOOP
+    sims -sys=manycore -x_tiles=2 -y_tiles=1 -microwatt -vlt_run -build_id=nosnoop mw_coh.S   # HIT BAD TRAP
+
+| Diag | Model | Red control |
+|---|---|---|
+| `mw_coh.S` | `-x_tiles=2 -y_tiles=1` | `-config_rtl=MW_MUTANT_NO_SNOOP` |
+| `mw_coh4.S` | `-x_tiles=2 -y_tiles=2` | `-config_rtl=MW_MUTANT_NO_SNOOP` |
+| `mw_icoh.S` | `-x_tiles=2 -y_tiles=1` | `-config_rtl=MW_MUTANT_NO_ICINV` |
 
 End of test: a diag branches to `mw_pass` or `mw_fail`
 (`verif/diag/power/include/mw_diag.h`). Each stores to the data symbol
@@ -64,8 +83,10 @@ Microwatt starts at address 0, little-endian. Core addresses below
 0xFF_Fxxx_xxxx, so the UART is at 0xC0C2_C000. Accesses to it must be
 cache-inhibited (`stbcix`).
 
-With 2 tiles only tile 0 runs: the IOB wakes tile 0, and software starts the
-others through the syscon (`-mw_platform`).
+With more than one tile, the IOB wakes only tile 0. Software starts the
+others with an inter-processor interrupt (the `MW_WAKE` macro in
+`mw_diag.h`, used by the multi-tile diags above) or, with `-mw_platform`,
+through the syscon.
 
 ## FPGA builds
 

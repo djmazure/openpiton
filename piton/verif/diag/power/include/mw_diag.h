@@ -62,6 +62,26 @@ fail:	.quad	0
 	.previous
 	.endm
 
+/* Wake the tile at mesh (x, y) = (\rx, \ry), registers, with an
+ * inter-processor interrupt: a store of P = 1<<63 | y<<26 | x<<18 to core
+ * 0xCF00_0800 (PA 0x98_0000_0800). Only tile 0 is woken at reset; every
+ * other tile sleeps until this store. The store is byte-reversed (stdbrx):
+ * the bridge byte-swaps store data into P-Mesh lanes, so this puts P on the
+ * NoC unchanged. Clobbers r5, r8. */
+	.macro	MW_WAKE rx, ry
+	sync
+	li	5, 1
+	sldi	5, 5, 63
+	sldi	8, \rx, 18
+	or	5, 5, 8
+	sldi	8, \ry, 26
+	or	5, 5, 8
+	lis	8, 0xCF00
+	clrldi	8, 8, 32
+	ori	8, 8, 0x0800
+	stdbrx	5, 0, 8
+	.endm
+
 /* _start at 0 branching to \entry, and every exception vector to mw_fail */
 	.macro	MW_VECTORS entry
 	.globl	_start
