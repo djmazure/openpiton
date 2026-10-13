@@ -504,6 +504,14 @@ module chipset(
 ,    output  [`PITON_NUM_TILES*2-1:0]                       irq_o           // level sensitive IR lines, mip & sip (async)
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
+`ifdef PITON_MW_XICS
+    // Microwatt XICS (mw_xics device): one ICP level interrupt per tile
+,    output  [`PITON_NUM_TILES-1:0]                         mw_irq_o
+`endif // ifdef PITON_MW_XICS
+`ifdef PITON_MW_SYSCON
+    // Microwatt syscon (mw_syscon device): CPU_CTRL enable bit per tile
+,    output  [`PITON_NUM_TILES-1:0]                         mw_run_o
+`endif // ifdef PITON_MW_SYSCON
 
 );
 
@@ -1445,6 +1453,12 @@ chipset_impl_noc_power_test  chipset_impl (
         ,.irq_o                  ( irq_o         )
     `endif // ifdef PITON_RV64_PLIC
     `endif // ifdef PITON_RV64_PLATFORM
+    `ifdef PITON_MW_XICS
+        ,.mw_irq_o               ( mw_irq_o      )
+    `endif // ifdef PITON_MW_XICS
+    `ifdef PITON_MW_SYSCON
+        ,.mw_run_o               ( mw_run_o      )
+    `endif // ifdef PITON_MW_SYSCON
 );
 
 

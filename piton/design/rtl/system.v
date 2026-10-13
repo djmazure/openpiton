@@ -528,6 +528,15 @@ wire  [`PITON_NUM_TILES*2-1:0] irq;         // level sensitive IR lines, mip & s
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
 
+`ifdef PITON_MW_XICS
+// Microwatt XICS: chipset mw_xics ICP outputs -> one level interrupt per tile
+wire  [`PITON_NUM_TILES-1:0]   mw_irq;
+`endif // ifdef PITON_MW_XICS
+`ifdef PITON_MW_SYSCON
+// Microwatt syscon: chipset mw_syscon CPU_CTRL enable bits -> one run wire per tile
+wire  [`PITON_NUM_TILES-1:0]   mw_run;
+`endif // ifdef PITON_MW_SYSCON
+
 //////////////////////
 // Sequential Logic //
 //////////////////////
@@ -829,6 +838,12 @@ chip chip(
     ,.irq_i                         ( irq                        )  // level sensitive IR lines, mip & sip (async)
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
+`ifdef PITON_MW_XICS
+    ,.mw_irq_i                      ( mw_irq                     )
+`endif // ifdef PITON_MW_XICS
+`ifdef PITON_MW_SYSCON
+    ,.mw_run_i                      ( mw_run                     )
+`endif // ifdef PITON_MW_SYSCON
 );
 
 
@@ -1236,6 +1251,12 @@ chipset chipset(
     ,.irq_o                         ( irq                        ) // level sensitive IR lines, mip & sip (async)
 `endif // ifdef PITON_RV64_PLIC
 `endif // ifdef PITON_RV64_PLATFORM
+`ifdef PITON_MW_XICS
+    ,.mw_irq_o                      ( mw_irq                     )
+`endif // ifdef PITON_MW_XICS
+`ifdef PITON_MW_SYSCON
+    ,.mw_run_o                      ( mw_run                     )
+`endif // ifdef PITON_MW_SYSCON
 
 );
 
