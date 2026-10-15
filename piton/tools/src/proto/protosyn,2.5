@@ -64,6 +64,7 @@ def usage():
     print("                  genesys2", file=sys.stderr)
     print("                  nexysVideo", file=sys.stderr)
     print("                  f1", file=sys.stderr)
+    print("                  kv260     (Microwatt only)", file=sys.stderr)
     print("\n       -d, --design <design>", file=sys.stderr)
     print("              Name of design module to synthesize.  The default is 'system', which", file=sys.stderr)
     print("              synthesizes a full system with chip and chipset. See", file=sys.stderr)
@@ -439,6 +440,18 @@ def checkCmdOptions(options):
 
     if options.uart_dmw not in ["bram", "ddr", None]:
         print_error("Unexpected storage type")
+        usage()
+        sys.exit(2)
+
+    # kv260: the PS loads programs into its DDR carve-out, and the board has
+    # none of the Xilinx IP that UART or BRAM test loading needs
+    if options.board == "kv260" and options.core != "microwatt":
+        print_error("kv260 supports only -c microwatt")
+        usage()
+        sys.exit(2)
+
+    if options.board == "kv260" and (options.uart_dmw != None or options.test_name != None):
+        print_error("--uart-dmw and --bram-test are not supported on kv260")
         usage()
         sys.exit(2)
 

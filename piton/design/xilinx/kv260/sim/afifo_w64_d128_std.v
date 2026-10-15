@@ -6,8 +6,9 @@
 // Independent_Clocks_Block_RAM, 64 x 128, standard read mode,
 // Full_Flags_Reset_Value 1, Dout_Reset_Value 0). The KV260 memory path needs it because
 // noc_bidir_afifo (f1_mc_top's clock crossing) instantiates it and only the
-// .xci exists; a synthesis build gets the real core from the IP flow, never
-// from this file.
+// .xci exists. The KV260 board build synthesizes this file too (protosyn
+// kv260/board.tcl): its shell runs both sides on one clock (pl_clk0), so the
+// crossing is never exercised there. Do not use it with unrelated clocks.
 //
 // The interface behaviour noc_bidir_afifo relies on, modelled exactly:
 //   * standard (not first-word-fall-through) read: `dout` updates on the
