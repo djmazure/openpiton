@@ -45,8 +45,22 @@ set ISE_PROJECT_FILE "${PROJECT_DIR}/${PROJECT_NAME}.xise"
 
 # Combined variables from global, design, and board
 set ALL_INCLUDE_DIRS [concat ${GLOBAL_INCLUDE_DIRS} ${DESIGN_INCLUDE_DIRS}]
+if {[info exists BOARD_INCLUDE_DIRS]} {
+    set ALL_INCLUDE_DIRS [concat ${ALL_INCLUDE_DIRS} ${BOARD_INCLUDE_DIRS}]
+}
 
 set ALL_RTL_IMPL_FILES [concat ${DESIGN_RTL_IMPL_FILES}]
+
+# A board that wraps the design in its own shell (PITONSYS_SHELL) may add the
+# shell RTL and name the shell as the project top. Other boards set neither.
+if {[info exists BOARD_RTL_IMPL_FILES]} {
+    set ALL_RTL_IMPL_FILES [concat ${ALL_RTL_IMPL_FILES} ${BOARD_RTL_IMPL_FILES}]
+}
+if {[info exists BOARD_TOP_MODULE]} {
+    set TOP_MODULE ${BOARD_TOP_MODULE}
+} else {
+    set TOP_MODULE ${DESIGN_NAME}
+}
 
 set ALL_INCLUDE_FILES [concat ${GLOBAL_INCLUDE_FILES} ${DESIGN_INCLUDE_FILES}]
 

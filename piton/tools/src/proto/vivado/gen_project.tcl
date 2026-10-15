@@ -153,6 +153,13 @@ foreach xci_file $ALL_XCI_IP_FILES {
     }
 }
 
+# A board may build more of the project itself (e.g. a PS block design and
+# its wrapper); it runs here, with the sources in place and before the top is set
+if {[info exists BOARD_PROJECT_TCL]} {
+    source ${BOARD_PROJECT_TCL}
+    set fileset_obj [get_filesets sources_1]
+}
+
 # Set 'sources_1' fileset properties
 set_property "design_mode" "RTL" $fileset_obj
 set_property "edif_extra_search_paths" "" $fileset_obj
@@ -163,7 +170,7 @@ set_property "include_dirs" "${ALL_INCLUDE_DIRS}" $fileset_obj
 set_property "lib_map_file" "" $fileset_obj
 set_property "loop_count" "1000" $fileset_obj
 set_property "name" "sources_1" $fileset_obj
-set_property "top" "${DESIGN_NAME}" $fileset_obj
+set_property "top" "${TOP_MODULE}" $fileset_obj
 set_property "verilog_define" "${ALL_DEFAULT_VERILOG_MACROS}" $fileset_obj
 set_property "verilog_uppercase" "0" $fileset_obj
 
@@ -217,7 +224,7 @@ set_property "nl.sdf_anno" "1" $fileset_obj
 set_property "nl.write_all_overrides" "0" $fileset_obj
 set_property "runtime" "" $fileset_obj
 set_property "source_set" "sources_1" $fileset_obj
-set_property "top" "${DESIGN_NAME}" $fileset_obj
+set_property "top" "${TOP_MODULE}" $fileset_obj
 set_property "unit_under_test" "" $fileset_obj
 set_property "vcs.compile.load_glbl" "1" $fileset_obj
 set_property "vcs.compile.vhdlan.more_options" "" $fileset_obj
