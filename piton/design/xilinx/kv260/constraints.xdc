@@ -4,3 +4,7 @@
 # Kria KV260. No package pins: the clock and reset come from the PS
 # (pl_clk0, pl_resetn0), memory is PS DDR through S_AXI_HP0, and the system
 # UART goes to the PS UART0 over EMIO. The PS block constrains pl_clk0 itself.
+
+# Stamp the bitstream: USR_ACCESS reads back the build time over JTAG
+# (Vivado's TIMESTAMP encoding), so a loaded board can be matched to its .bit
+set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
