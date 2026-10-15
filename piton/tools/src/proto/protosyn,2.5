@@ -526,8 +526,10 @@ def makeDefList(options):
         else:
             defines.append("PITONSYS_AXI4_MEM")      
         
-    # --zeroer_off option
-    if (options.zeroer_off == False):
+    # --zeroer_off option. kv260 never has the zeroer: the PS copies the
+    # program into DDR while the system is held in reset, and the zeroer
+    # clears memory when the reset is released, before the core can fetch it.
+    if (options.zeroer_off == False) and (options.board != "kv260"):
         defines.append("PITONSYS_MEM_ZEROER")    
 
     # do not use SD controller if BRAM is used for boot or a test or if board doesn't have sd
