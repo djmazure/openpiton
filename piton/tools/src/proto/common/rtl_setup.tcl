@@ -778,3 +778,20 @@ set CHIPSET_PRJ_IP_FILES [list \
     "${DV_ROOT}/design/chipset/mc/xilinx/${BOARD}/ip_cores/mig_7series_0/mig_a.prj" \
     "${DV_ROOT}/design/chipset/mc/xilinx/${BOARD}/ip_cores/mig_7series_axi4/mig_b.prj" \
 ]
+
+# Microwatt (OpenPOWER) tile and its chipset devices (-c microwatt): the same
+# files as sims' Flist.microwatt_tile, Flist.mw_xics and Flist.mw_syscon. The
+# netlists under gen/ are written by convert_microwatt.
+set MICROWATT_RTL_IMPL_FILES [list \
+    "${DV_ROOT}/design/chip/tile/microwatt_tile/rtl/tri_wb_bridge.v" \
+    "${DV_ROOT}/design/chip/tile/microwatt_tile/rtl/mw_tile.v" \
+    "${DV_ROOT}/design/chip/tile/microwatt_tile/rtl/mw_piton_core.v" \
+    "${DV_ROOT}/design/chip/tile/microwatt_tile/gen/microwatt/mw_core_flat.v" \
+    "${DV_ROOT}/design/chipset/microwatt/rtl/mw_noc_wb.v" \
+    "${DV_ROOT}/design/chipset/microwatt/rtl/mw_xics.v" \
+    "${DV_ROOT}/design/chipset/microwatt/gen/mw_xics_flat.v" \
+    "${DV_ROOT}/design/chipset/microwatt/gen/mw_xics_flat_n2.v" \
+    "${DV_ROOT}/design/chipset/microwatt/rtl/mw_syscon.v" \
+    "${DV_ROOT}/design/chipset/microwatt/gen/mw_syscon_flat.v" \
+    "${DV_ROOT}/design/chipset/microwatt/gen/mw_syscon_flat_n2.v" \
+]

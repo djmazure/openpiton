@@ -107,6 +107,10 @@ if {[info exists ::env(PITON_PICO_HET)]} {
   append ALL_DEFAULT_VERILOG_MACROS " PITON_PICO PITON_PICO_HET"
 }
 
+if {[info exists ::env(PITON_MICROWATT)]} {
+  append ALL_DEFAULT_VERILOG_MACROS " PITON_MICROWATT"
+  set ALL_RTL_IMPL_FILES [concat ${ALL_RTL_IMPL_FILES} ${MICROWATT_RTL_IMPL_FILES}]
+}
 if {[info exists ::env(PITON_ARIANE)]} {
   append ALL_DEFAULT_VERILOG_MACROS " PITON_ARIANE PITON_RV64_PLATFORM PITON_RV64_DEBUGUNIT PITON_RV64_CLINT PITON_RV64_PLIC WT_DCACHE"
 }
@@ -114,6 +118,9 @@ if {[info exists ::env(PITON_ARIANE)]} {
 for {set k 0} {$k < $::env(PITON_NUM_TILES)} {incr k} {
   if {[info exists "::env(RTL_ARIANE$k)"]} {
     append ALL_DEFAULT_VERILOG_MACROS " RTL_ARIANE$k"
+  }
+  if {[info exists "::env(RTL_MICROWATT$k)"]} {
+    append ALL_DEFAULT_VERILOG_MACROS " RTL_MICROWATT$k"
   }
   if {[info exists "::env(RTL_PICO$k)"]} {
     append ALL_DEFAULT_VERILOG_MACROS " RTL_PICO$k"
