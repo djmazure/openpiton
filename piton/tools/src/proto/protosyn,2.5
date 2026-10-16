@@ -100,6 +100,13 @@ def usage():
     print("              Name of the test to be mapped into BRAM", file=sys.stderr)
     print("\n       --no-ddr", file=sys.stderr)
     print("              Implement design without DDR memory", file=sys.stderr)
+    print("\n       --no_csm", file=sys.stderr)
+    print("              Build the L1.5 without the coherence state machine (NO_RTL_CSM).", file=sys.stderr)
+    print("              Always on for ariane.", file=sys.stderr)
+    print("\n       --microwatt_nofpu", file=sys.stderr)
+    print("              Build each Microwatt tile without its FPU (HAS_FPU=false; the", file=sys.stderr)
+    print("              netlist from convert_microwatt core_nofpu). The kernel must then", file=sys.stderr)
+    print("              emulate floating point. Only with -c microwatt.", file=sys.stderr)
     print("\n       --eth", file=sys.stderr)
     print("              Add Ethernet controller to implementation", file=sys.stderr)
     print("\n       --uart-dmw <storage type>", file=sys.stderr)
@@ -450,6 +457,11 @@ def checkCmdOptions(options):
         usage()
         sys.exit(2)
 
+    if options.microwatt_nofpu and options.core != "microwatt":
+        print_error("--microwatt_nofpu needs -c microwatt")
+        usage()
+        sys.exit(2)
+
     if options.board == "kv260" and (options.uart_dmw != None or options.test_name != None):
         print_error("--uart-dmw and --bram-test are not supported on kv260")
         usage()
@@ -496,6 +508,8 @@ def setParserOptions(parser):
     parser.add_option("--swait", dest="swait", action="store_true", default=False)
     parser.add_option("--axi4_mem", dest="axi4_mem", action="store_true", default=False)
     parser.add_option("--zeroer_off", dest="zeroer_off", action="store_true", default=False)
+    parser.add_option("--no_csm", dest="no_csm", action="store_true", default=False)
+    parser.add_option("--microwatt_nofpu", dest="microwatt_nofpu", action="store_true", default=False)
     parser.add_option("--postroutephysopt", dest="postroutephysopt", action="store_true", default=False)
 
     return parser
@@ -506,8 +520,8 @@ def makeDefList(options):
     #df = options.board.upper() + "_BOARD"
     #defines.append(df)
 
-    # disable CSM in this case
-    if options.core == 'ariane':
+    # disable CSM for ariane, or when asked to
+    if options.core == 'ariane' or options.no_csm:
         defines.append("NO_RTL_CSM")
 
     if (options.board == "f1"):
@@ -806,8 +820,14 @@ def main():
         options.config_l1d_size = 1024
         options.config_l1d_associativity = 1
 
-        # the core and chipset netlists come from convert_microwatt
-        netlists = ["design/chip/tile/microwatt_tile/gen/microwatt/mw_core_flat.v",
+        # the core and chipset netlists come from convert_microwatt; rtl_setup.tcl
+        # takes the FPU-less core from gen/microwatt_nofpu when MICROWATT_NOFPU is set
+        core = "microwatt"
+        os.environ.pop('MICROWATT_NOFPU', None)
+        if options.microwatt_nofpu:
+            os.environ['MICROWATT_NOFPU'] = "1"
+            core = "microwatt_nofpu"
+        netlists = ["design/chip/tile/microwatt_tile/gen/" + core + "/mw_core_flat.v",
                     "design/chipset/microwatt/gen/mw_xics_flat.v",
                     "design/chipset/microwatt/gen/mw_xics_flat_n2.v",
                     "design/chipset/microwatt/gen/mw_syscon_flat.v",
