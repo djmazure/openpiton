@@ -90,14 +90,18 @@ through the syscon.
 
 ## FPGA builds
 
-`protosyn` does not build the Microwatt tile yet: it has no Microwatt core
-option. Vivado reads VHDL, so an FPGA build can list the wrapper and
-Microwatt's sources directly instead of the converted netlists.
+`protosyn -c microwatt` builds the Microwatt tile from the converted
+netlists, so run `convert_microwatt` first. The KV260 build is
+`protosyn -b kv260 -c microwatt -d system`. `--microwatt_nofpu`
+takes the FPU-less core (`convert_microwatt core_nofpu`, as
+`Flist.microwatt_tile_nofpu`), and the kernel must then emulate floating
+point. `--no_csm` builds the L1.5 without its coherence state machine
+(`NO_RTL_CSM`).
 
 `design/xilinx/kv260` holds the KV260 RTL: the PS-DDR memory shim, the open
-16550 UART, and the `devices_microwatt.xml` map. The KV260 build itself is
-not in this tree: the Zynq PS block design, its constraints and the PS-side
-program loader that starts the tiles.
+16550 UART, the `devices_microwatt.xml` map and the constraints. protosyn's
+`kv260` board adds the Zynq PS block design. The PS-side program loader
+that starts the tiles is not in this tree.
 
 ## Configuration
 

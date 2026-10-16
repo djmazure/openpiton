@@ -19,12 +19,15 @@ diags and `sims` options to run it. The full description is
   - a reset of `r1.store_way`;
   - configurable icache and dcache line sizes;
   - the PIR value taken from a port.
-- **Only the simulation results below can be reproduced from this branch.**
-  Microwatt Linux (1 and 2 CPUs) has also run on a KV260, but that build is not
-  in this tree: `protosyn` has no Microwatt option, and the Zynq PS block design,
-  constraints and PS-side loader live elsewhere.
-  `piton/design/xilinx/kv260` holds only the board RTL (PS-DDR memory shim,
-  16550 UART, device map).
+- **The KV260 bitstream builds from this branch** with
+  `protosyn -b kv260 -c microwatt -d system`, run after `convert_microwatt`.
+  The build includes the Zynq PS block design (`piton/tools/src/proto/kv260`).
+  `piton/design/xilinx/kv260` holds the board RTL (the PS-DDR memory shim and
+  the 16550 UART), the device map and the constraints. Microwatt Linux (1 and
+  2 CPUs) has run on a KV260. The PS-side loader that copies a program into PS
+  DDR and starts the tiles is not in this tree. For two tiles without the FPU and the coherence
+  state machine, add `--x_tiles 2 --no_csm --microwatt_nofpu` and run
+  `convert_microwatt core_nofpu` first.
 
 ## Prerequisites
 
