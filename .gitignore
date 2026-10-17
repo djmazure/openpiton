@@ -6,6 +6,8 @@
 # Ignore everything in model directory
 build/*
 !build/.keep
+# Model directories beside it, one per configuration (MODEL_DIR=build-2x1)
+build-*/
 
 # Ignore generated logs from back-end
 # Good for 10 levels of hierarchy
